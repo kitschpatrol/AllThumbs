@@ -1,5 +1,7 @@
 package com.kitschpatrol
 {
+	import com.hurlant.math.BigInteger;
+	
 	import flash.display.Shape;
 	import flash.display.Sprite;
 	import flash.events.MouseEvent;
@@ -7,26 +9,43 @@ package com.kitschpatrol
 	
 	public class Window extends Sprite {
 		
-		private var xRes:int;
-		private var yRes:int;
-		private var cellWidth:int;
-		private var cellHeight:int;
-		public var paneWidth:int;
-		public var paneHeight:int;
-		public var padding:int;
-		private var xOffset:int;
-		private var yOffset:int;
-		private var panes:Array;
-		private var tempPane:Pane;
+		public var xStart:BigInteger;
+		public var yStart:BigInteger;
+		public var xDelta:BigInteger;
+		public var yDelta:BigInteger;
+		public var xMax:BigInteger;
+		public var yMax:BigInteger;
+		public var xTemp:BigInteger;
+		public var yTemp:BigInteger;		
+		
+		public var bitDepth:int;
+		
+		public var xRes:int; // pixel width
+		public var yRes:int; // pixel height
+		public var cellWidth:int; // each picture, with padding
+		public var cellHeight:int; // each picture, with padding
+		public var xCount:int; // cells per pane
+		public var yCount:int; // cells per pane
+		public var paneWidth:int; // a pane of cells
+		public var paneHeight:int; // a pane of cells
+		public var padding:int; // pixels between cells
+		private var xOffset:int; // mouse offset
+		private var yOffset:int; // mouse offset
+		private var panes:Array; // list of panes
+		private var tempPane:Pane; // a pane to munge
 		private var lastMouseX:int;
 		private var lastMouseY:int;
-		private var xOverdraw:int;
-		private var yOverdraw:int;
-		private var maxWidth:int;
-		private var maxHeight:int;
+		private var xOverdraw:int; // how much to draw outside the window
+		private var yOverdraw:int; // how much to draw outside the window
+		private var maxWidth:int; // max window width
+		private var maxHeight:int; // max window height
+		public var xPixelCount:int;
+		public var yPixelCount:int;
+		public var xPixelBytes:int;
+		public var yPixelBytes:int;
 		
 		private var windowMask:Shape;
-
+		
 		
 		public function Window(_x:int, _y:int, _width:int, _height:int) {
 			super();
@@ -36,20 +55,37 @@ package com.kitschpatrol
 			maxWidth = _width;
 			maxHeight = _height;
 
-			
-			this.graphics.beginFill(0xff0000);
+			this.graphics.beginFill(0);
 			this.graphics.drawRect(0, 0, _width, _height);
 			this.graphics.endFill();
 			
+			// simulation settings
 			xRes = 48;
 			yRes = 48;
-			padding = 0;
+			bitDepth = 2;
+			xStart = BigInteger.nbv(0);
+			yStart = BigInteger.nbv(0);
+			xDelta = BigInteger.nbv(1);
+			yDelta = BigInteger.nbv(1);
+			xMax = BigInteger.nbv(bitDepth).pow(xRes * yRes);
+			yMax = xMax.clone();
+			
+			xPixelCount = xRes * yRes / 2;
+			yPixelCount = xPixelCount;
+			xPixelBytes = xPixelCount / 8;
+			yPixelBytes = yPixelCount / 8;
+			
+			// house keeping
+			padding = 1;
 			cellWidth = xRes + padding;
 			cellHeight = yRes + padding;
-			paneWidth = cellWidth * 6;
-			paneHeight = cellHeight * 6;
+			xCount = 6;
+			yCount = 6;
+			paneWidth = cellWidth * xCount;
+			paneHeight = cellHeight * yCount;
 			xOverdraw = paneWidth * 2;
 			yOverdraw = paneWidth * 2;
+			
 			
 			xOffset = 0;
 			yOffset = 0;
@@ -64,8 +100,8 @@ package com.kitschpatrol
 			windowMask.graphics.beginFill(0);
 			windowMask.graphics.drawRect(0, 0, _width, _height);
 			windowMask.graphics.endFill();
-			this.addChild(windowMask);
 			this.mask = windowMask;
+			
 			
 			this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
 		}
@@ -122,7 +158,26 @@ package com.kitschpatrol
 				for (var j:int = yOffset - yOverdraw; j < maxHeight + yOffset + yOverdraw; j += paneHeight) {
 					// add panes as necessarry
 					if (!paneExists(i, j)) {
-						tempPane = new Pane(this, i, j);
+						
+						//make the first one the seed pane
+						if(panes.length == 0) {
+							xTemp = xStart.clone();
+							yTemp = yStart.clone();
+						}
+						else {
+							// figure out distance from the start value, multiply it out by delta
+							xTemp = xStart.add(xDelta.multiply(BigInteger.nbv(((i - panes[0].x) / paneWidth) * xCount)));
+							yTemp = yStart.add(yDelta.multiply(BigInteger.nbv(((j - panes[0].y) / paneHeight) * yCount)));
+							
+							// check the bounds, don't draw past them
+							if (xTemp.compareTo(BigInteger.ZERO) == -1) continue;
+							if (yTemp.compareTo(BigInteger.ZERO) == -1) continue;
+							if (xTemp.compareTo(xMax) == 1) continue;
+							if (yTemp.compareTo(yMax) == 1) continue;
+							
+						}						
+						
+						tempPane = new Pane(this, i, j, xTemp, yTemp);
 						panes.push(tempPane);
 					}
 				}

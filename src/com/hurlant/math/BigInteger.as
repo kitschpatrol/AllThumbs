@@ -16,6 +16,8 @@ package com.hurlant.math
 	import com.hurlant.util.Hex;
 	import com.hurlant.util.Memory;
 	
+
+	
 	import flash.utils.ByteArray;
 	use namespace bi_internal;
 
@@ -40,8 +42,18 @@ package com.hurlant.math
 		public function BigInteger(value:* = null, radix:int = 0) {
 			a = new Array;
 			if (value is String) {
-				value = Hex.toArray(value);
-				radix=0;
+				if (radix == 10) {
+					//value = decStringtoArray(value);
+					//radix=0;
+					fromRadix(value);
+				}
+				else if (radix == 2) {
+					fromRadix(value, 2);
+				}
+				else {
+					value = Hex.toArray(value);
+					radix=0;
+				}
 			}
 			if (value is ByteArray) {
 				var array:ByteArray = value as ByteArray;
@@ -71,7 +83,7 @@ package com.hurlant.math
 				case 16:  k=4; break;
 				case 32:  k=5; break;
 				default:
-//					return toRadix(radix);
+					return toRadix(radix);
 			}
 			var km:int = (1<<k)-1;
 			var d:int = 0;
@@ -1521,6 +1533,16 @@ package com.hurlant.math
 				while(bitLength()>bits) subTo(BigInteger.ONE.shiftLeft(bits-1),this);
 			}
 		}
+		
+		public static function decStringtoArray(hex:String):ByteArray {
+				//hex = hex.replace(/\s|:/gm,'');
+				var a:ByteArray = new ByteArray;
+				if (hex.length&1==1) hex="0"+hex;
+				for (var i:uint=0;i<hex.length;i+=2) {
+					a[i/2] = parseInt(hex.substr(i,2),10);
+				}
+				return a;
+			}
 
 	}
 }
