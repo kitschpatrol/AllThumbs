@@ -16,7 +16,10 @@ package com.kitschpatrol {
 		
 		public var xPos:BigInteger;
 		public var yPos:BigInteger;
-		public var yPosScratch:BigInteger; // no need for x since it interates without fanfare		
+		public var xPosMax:BigInteger; // the right most value
+		public var yPosMax:BigInteger; // the bottom most value, yPos + height, kind of
+		public var yPosScratch:BigInteger;	
+		public var xPosScratch:BigInteger;	
 		private var cellPoints:Array;
 		private var window:Window;
 		private var xBytes:ByteArray;
@@ -38,8 +41,12 @@ package com.kitschpatrol {
 			x = _x;
 			y = _y;
 			xPos = _xPos;
-			yPos = _yPos;			
-			bitmapData = new BitmapData(window.paneWidth, window.paneHeight, false, Utilities.randRange(0x000000, 0xffffff));
+			yPos = _yPos;
+			
+			xPosMax = xPos.add(window.xDelta.multiply(BigInteger.nbv(window.xCount)));
+			yPosMax = yPos.add(window.yDelta.multiply(BigInteger.nbv(window.yCount)));
+			
+			bitmapData = new BitmapData(window.paneWidth, window.paneHeight, false, 0x222222);
 			
 			copyRect = new Rectangle(0, 0, window.xRes, window.yRes);
 			pixelBytes = new ByteArray();
@@ -49,22 +56,16 @@ package com.kitschpatrol {
 			
 			xIndex = 0;
 			yIndex = 0;
-			cellsPerFrame = 6;
-			yPosScratch = yPos;
-			
-			
-			for (var i:int = 0; i < window.xCount; i++) {
-				for (var j:int = 0; j < window.xCount; j++) {
-					cellPoints.push(new Point(i, j));
-				}
-			}
-			
+			cellsPerFrame = 3;
+			yPosScratch = yPos.clone();
+			xPosScratch = xPos.clone();
+
 			this.addEventListener(Event.ENTER_FRAME, lazyLoadLoop);
 		}
 		
-		// TODO much faster to go in order and just add?
+		
 		private function generateCell(xCell:int, yCell:int, xNumber:BigInteger):void {
-			pixelBytes.length = 48 * 48 * 4;
+			pixelBytes.length = window.pixelByteCount;
 			
 			// figure out the value
 			xBytes = xNumber.toPixels();
@@ -91,12 +92,11 @@ package com.kitschpatrol {
 		
 		private function lazyLoadLoop(e:Event):void {
 			cellsThisFrame = 0;
-			
-			
+
 			// doing the bigint math out here means we can do it 5 times less
 			// TODO move the byte conversion here too....
 			while(cellsThisFrame < cellsPerFrame) {
-				generateCell(xIndex, yIndex, xPos);			
+				generateCell(xIndex, yIndex, xPosScratch);			
 				
 				//trace("X: " + xIndex + " Y: " + yIndex);
 				
@@ -107,7 +107,7 @@ package com.kitschpatrol {
 					yIndex = 0;
 					yPosScratch = yPos; // reset ypos
 					xIndex++;
-					xPos = xPos.add(window.xDelta);
+					xPosScratch = xPosScratch.add(window.xDelta);
 				}
 				
 				if(xIndex >= window.xCount) {
