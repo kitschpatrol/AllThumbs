@@ -44,6 +44,10 @@ package com.kitschpatrol
 		public var xPixelBytes:int;
 		public var yPixelBytes:int;
 		
+		
+		public var xByteEnd:int; // end of the bytes for the pane
+		public var yByteEnd:int;
+		
 		private var windowMask:Shape;
 		
 		
@@ -65,8 +69,8 @@ package com.kitschpatrol
 			bitDepth = 2;
 			xStart = BigInteger.nbv(0);
 			yStart = BigInteger.nbv(0);
-			xDelta = BigInteger.nbv(1);
-			yDelta = BigInteger.nbv(1);
+			xDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
+			yDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
 			xMax = BigInteger.nbv(bitDepth).pow(xRes * yRes);
 			yMax = xMax.clone();
 			
@@ -85,6 +89,8 @@ package com.kitschpatrol
 			paneHeight = cellHeight * yCount;
 			xOverdraw = paneWidth * 2;
 			yOverdraw = paneWidth * 2;
+			xByteEnd = xRes * (xRes / 2) * 4;
+			yByteEnd = xRes * xRes * 4;
 			
 			
 			xOffset = 0;
@@ -161,8 +167,11 @@ package com.kitschpatrol
 						
 						//make the first one the seed pane
 						if(panes.length == 0) {
+							trace("seeding");
 							xTemp = xStart.clone();
 							yTemp = yStart.clone();
+							// TODO, make the most recent pane the seed pane, perpetually
+							// just pass around a reference
 						}
 						else {
 							// figure out distance from the start value, multiply it out by delta
@@ -201,6 +210,31 @@ package com.kitschpatrol
 			manageView();
 
 		}
+		
+		public function setDelta(newDelta:BigInteger):void {
+			// reset, remove all children
+			while(this.numChildren > 0) {
+				this.removeChildAt(0);
+			}
+			
+			// trash the panes
+			panes = new Array();
+			
+			// update the delta
+			xDelta = newDelta;
+			yDelta = newDelta;
+			
+			// back to zero
+			xStart = BigInteger.nbv(0);
+			yStart = BigInteger.nbv(0);			
+			
+			// rebuild the view
+			fillView();
+			manageView();
+			
+		}
+		
+		
 		
 	}
 }

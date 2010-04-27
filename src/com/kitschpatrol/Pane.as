@@ -16,15 +16,20 @@ package com.kitschpatrol {
 		
 		public var xPos:BigInteger;
 		public var yPos:BigInteger;
-		public var xPosScratch:BigInteger;
-		public var yPosScratch:BigInteger;		
+		public var yPosScratch:BigInteger; // no need for x since it interates without fanfare		
 		private var cellPoints:Array;
 		private var window:Window;
-		private var bitmapScratch:BitmapData;
-		private var xString:String;
-		private var yString:String;
+		private var xBytes:ByteArray;
+		private var yBytes:ByteArray;
+		private var pixelBytes:ByteArray;
 		private var copyRect:Rectangle;
 		private var loadIndex:int;
+		private var xOffset:int;
+		private var yOffset:int;
+		private var xIndex:int;
+		private var yIndex:int;
+		private var cellsPerFrame:int;
+		private var cellsThisFrame:int;
 		
 		
 		public function Pane(_window:Window, _x:int, _y:int, _xPos:BigInteger, _yPos:BigInteger) {
@@ -35,12 +40,17 @@ package com.kitschpatrol {
 			xPos = _xPos;
 			yPos = _yPos;			
 			bitmapData = new BitmapData(window.paneWidth, window.paneHeight, false, Utilities.randRange(0x000000, 0xffffff));
-			bitmapScratch = new BitmapData(window.xRes, window.yRes, false, 0);
+			
 			copyRect = new Rectangle(0, 0, window.xRes, window.yRes);
+			pixelBytes = new ByteArray();
 			
 			cellPoints = new Array();
 			loadIndex = 0;
 			
+			xIndex = 0;
+			yIndex = 0;
+			cellsPerFrame = 6;
+			yPosScratch = yPos;
 			
 			
 			for (var i:int = 0; i < window.xCount; i++) {
@@ -53,41 +63,62 @@ package com.kitschpatrol {
 		}
 		
 		// TODO much faster to go in order and just add?
-		private function generateCell(point:Point):void {
-			// figure out the value
-			//xString = Utilities.zeroPad(xPos.add(window.xDelta.multiply(BigInteger.nbv(point.x))).toString(2), window.xPixelCount);
-			//yString = Utilities.zeroPad(yPos.add(window.yDelta.multiply(BigInteger.nbv(point.y))).toString(2), window.yPixelCount);
+		private function generateCell(xCell:int, yCell:int, xNumber:BigInteger):void {
+			pixelBytes.length = 48 * 48 * 4;
 			
-			// fill the bitmap
-//			bitmapScratch.lock();
-//			var charIndex:int = 0;
-//			for (var j:int = 0; j < window.xPixelCount; j++) {
-//				for (var k:int = 0; k < window.xPixelCount / 2; k++) {
-//					//if (xString.charAt(charIndex) == '1') bitmapScratch.setPixel(j, k, 0xffffff);
-//					//if (yString.charAt(charIndex) == '1') bitmapScratch.setPixel(j, k + window.yRes / 2, 0xffffff);
-//					charIndex++;
-//				}
-//			}
-//			bitmapScratch.unlock();
-//			
-			// copy it into the pane
-			var destPoint:Point = new Point(point.x * window.cellWidth, point.y * window.cellHeight);
-			this.bitmapData.copyPixels(bitmapScratch, copyRect, destPoint);
+			// figure out the value
+			xBytes = xNumber.toPixels();
+			yBytes = yPos.add(window.yDelta.multiply(BigInteger.nbv(yCell))).toPixels();
+			
+			xBytes.position = 0;
+			yBytes.position = 0;
+			xOffset = window.xByteEnd - xBytes.bytesAvailable;
+			yOffset = window.yByteEnd - yBytes.bytesAvailable;
+			
+			pixelBytes.position = xOffset;
+			pixelBytes.writeBytes(xBytes);
+			pixelBytes.position = yOffset;
+			pixelBytes.writeBytes(yBytes);
+			
+			// copy over the pixels
+			pixelBytes.position = 0;
+			copyRect.x = xCell * window.cellWidth;
+			copyRect.y = yCell * window.cellWidth;
+			this.bitmapData.setPixels(copyRect, pixelBytes);
+			
+			pixelBytes.clear();
 		}
 		
 		private function lazyLoadLoop(e:Event):void {
-			generateCell(cellPoints[loadIndex++]);
+			cellsThisFrame = 0;
 			
-			if(loadIndex >= cellPoints.length) {
-				this.removeEventListener(Event.ENTER_FRAME, lazyLoadLoop);
+			
+			// doing the bigint math out here means we can do it 5 times less
+			// TODO move the byte conversion here too....
+			while(cellsThisFrame < cellsPerFrame) {
+				generateCell(xIndex, yIndex, xPos);			
+				
+				//trace("X: " + xIndex + " Y: " + yIndex);
+				
+				yIndex++;
+				yPosScratch.add(window.yDelta);
+				
+				if(yIndex >= window.yCount) {
+					yIndex = 0;
+					yPosScratch = yPos; // reset ypos
+					xIndex++;
+					xPos = xPos.add(window.xDelta);
+				}
+				
+				if(xIndex >= window.xCount) {
+					this.removeEventListener(Event.ENTER_FRAME, lazyLoadLoop);
+				}
+				
+				cellsThisFrame++;
 			}
 		}
 		
-		private function generateCells():void {
-			for (var i:int = 0; i < cellPoints.length; i++) {
-				generateCell(cellPoints[i]);
-			}
-		}
+
 		
 	}
 }

@@ -16,8 +16,6 @@ package com.hurlant.math
 	import com.hurlant.util.Hex;
 	import com.hurlant.util.Memory;
 	
-
-	
 	import flash.utils.ByteArray;
 	use namespace bi_internal;
 
@@ -1544,5 +1542,67 @@ package com.hurlant.math
 				return a;
 			}
 
+		
+		
+		public function toPixels():ByteArray {
+			var k:int = 1; // base 2
+
+			var km:int = (1<<k)-1;
+			
+			
+			var d:int = 0;
+			var m:Boolean = false;
+			var ba:ByteArray = new ByteArray;
+			var r:String = "";
+			var i:int = t;
+			var p:int = DB-(i*DB)%k;
+			
+			// i is number of chunks, 39
+			// a is the array of chunks
+			
+			
+			if (i-- > 0) {
+				
+				// return if the number is small
+				if (p < DB && (d = a[i] >> p) > 0) {
+					m = true;
+					r = d.toString(36);
+					trace("hi, bigint in trouble");
+				}
+				
+				// go through each chunk
+				while (i >= 0) {
+					if (p < k) {
+						d = (a[i]&((1<<p)-1))<<(k-p);
+						d|= a[--i]>>(p+=DB-k);
+					} else {
+						d = (a[i]>>(p-=k))&km;
+						if (p<=0) {
+							p += DB;
+							--i;
+						}
+					}
+					if (d>0) {
+						m = true;
+					}
+					if (m) {
+						// add the the string
+						if(d == 0) {
+							ba.writeUnsignedInt(0x000000);
+						}
+						else {
+							ba.writeUnsignedInt(0xffffff);
+						}
+						r += d.toString(36);
+					}
+				}
+			}
+			// if M is true, return the string, otherwise return 0
+			// return m ? r : "0";
+			return ba;
+		}		
+		
+		
+		
 	}
 }
