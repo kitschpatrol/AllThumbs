@@ -1,7 +1,10 @@
 package com.kitschpatrol {
 	import com.bit101.components.HUISlider;
+	import com.bit101.components.Label;
 	import com.bit101.components.PushButton;
 	import com.bit101.components.Text;
+	import com.bit101.components.VSlider;
+	import com.hurlant.crypto.symmetric.NullPad;
 	import com.hurlant.math.BigInteger;
 	
 	import flash.display.Bitmap;
@@ -28,6 +31,8 @@ package com.kitschpatrol {
 		private var locationText:Text;
 		private var submitTextButton:PushButton;
 		private var submitCameraButton:PushButton;
+		private var textLabel:Label;
+		private var thresholdSlider:VSlider;
 		
 		private var video:Video;
 		private var camera:Camera;
@@ -37,6 +42,8 @@ package com.kitschpatrol {
 		private var cameraBytes:ByteArray;
 		private var cameraPixelStringX:String;
 		private var cameraPixelStringY:String;
+		private var thresholdValue:Number;
+		
 		
 		public function AllThumbs() {
 			// Build the window
@@ -45,30 +52,42 @@ package com.kitschpatrol {
 			
 			// the crosshairs
 			var crosshairs:Shape = new Shape();
-			crosshairs.graphics.lineStyle(4, 0xff0000, 0.5);
+			crosshairs.graphics.lineStyle(4, 0xff0000, 0.3);
 			crosshairs.graphics.drawRect(0, 0, window.cellWidth * 1.2, window.cellHeight * 1.2);
 			crosshairs.x = window.windowCenter().x - crosshairs.width / 2;
 			crosshairs.y = window.windowCenter().y - crosshairs.height / 2;
 			addChild(crosshairs);
 			
 			// the slider
-			deltaSlider = new HUISlider(this, 100, 740,"Delta", onDeltaSlide);
+			deltaSlider = new HUISlider(this, 12, 740, "Delta", onDeltaSlide);
 			deltaSlider.minimum = 1;
-			deltaSlider.maximum = Number.MAX_VALUE;
+			deltaSlider.width = 600;
+			deltaSlider.maximum = 500;
+			thresholdValue = 0;
+		
+			// The Label
+			textLabel = new Label(this, 12, 605, "Possibility #:");
+			
 			
 			// the text
-			locationText = new Text(this, 12, 650, "0");
-			locationText.width = 1000;
-			locationText.height = 40;
+			locationText = new Text(this, 12, 625, "0");
+			locationText.width = 600;
+			locationText.height = 60;
 			
 			// the text submit button
-			submitTextButton = new PushButton(this, 12, 700, "GO", onSubmitText);
+			submitTextButton = new PushButton(this, 12, 690, "GO", onSubmitText);
 			
 			// the camera submit button
-			submitCameraButton = new PushButton(this, 800, 700, "GO", onSubmitCamera);
-			
+			submitCameraButton = new PushButton(this, 900, 680, "GO", onSubmitCamera);
+			submitCameraButton.width = 48;
 			
 			window.addEventListener(Window.SELECTION_CHANGE, onSelectionChange);
+			
+			// the camera slider
+			thresholdSlider = new VSlider(this, 880, 625, onThresholdSlide);
+			thresholdSlider.minimum = 0;
+			thresholdSlider.maximum = 0xffffff;
+			thresholdSlider.height = 75;
 			
 			// The camera
 			camera = Camera.getCamera();
@@ -80,7 +99,8 @@ package com.kitschpatrol {
 			cameraRect = new Rectangle(0, 0, 48, 48);
 			cameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0));
 			processedCameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0xffffff));
-			processedCameraBitmap.x = 500;
+			processedCameraBitmap.x = 900;
+			processedCameraBitmap.y = 625;
 			addChild(processedCameraBitmap);
 			
 			
@@ -90,12 +110,16 @@ package com.kitschpatrol {
 			cameraBitmap.bitmapData.draw(video);
 			var pt:Point = new Point(0, 0);
 			
-			var threshold:uint =  (0x666666 / 2); 
+			
 			var color:uint = 0xff0000;
 			var maskColor:uint = 0xffffff;
 			processedCameraBitmap.bitmapData = new BitmapData(48, 48, false, 0xffffff);
-			processedCameraBitmap.bitmapData.threshold(cameraBitmap.bitmapData, cameraRect, pt, "<", threshold, color, maskColor, false);
+			processedCameraBitmap.bitmapData.threshold(cameraBitmap.bitmapData, cameraRect, pt, "<", thresholdValue, color, maskColor, false);
 			
+		}
+		
+		private function onThresholdSlide(e:Event):void {
+			thresholdValue = thresholdSlider.value;
 		}
 		
 		private function onSubmitCamera(e:Event):void {
