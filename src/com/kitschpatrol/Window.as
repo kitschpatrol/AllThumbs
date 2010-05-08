@@ -11,39 +11,50 @@ package com.kitschpatrol
 	
 	public class Window extends Sprite {
 		
-		
+		// Events
 		static public var SELECTION_CHANGE:String = "selection change"; // fires when the "center" cell changes
+		
+		// set some constants
+		public const X_RES:int = 48; // pixel width
+		public const Y_RES:int = 48; // pixel height
+		public const BIT_DEPTH:int = 2;
+		public const PANE_X_COUNT:int = 6; // set this to determine pane size, cells per pane
+		public const PANE_Y_COUNT:int = 6;
+		public const PADDING:int = 2; // pixels between cells		
+		
+		// derrived constants, don't touch
+		public const X_MAX:BigInteger = BigInteger.nbv(BIT_DEPTH).pow(X_RES * (Y_RES / 2)).subtract(BigInteger.nbv(1));
+		public const Y_MAX:BigInteger = X_MAX.clone(); 		
+		public const CELL_WIDTH:int = X_RES + PADDING; // each picture, with padding
+		public const CELL_HEIGHT:int = Y_RES + PADDING; // each picture, with padding
+		public const PANE_WIDTH:int = CELL_WIDTH * PANE_X_COUNT; // a pane of cells
+		public const PANE_HEIGHT:int = CELL_HEIGHT * PANE_Y_COUNT; // a pane of cells
+		
+		// multiply pane_width to draw more outside view
+		private const X_OVERDRAW:int = PANE_WIDTH; // how much to draw outside the window
+		private const Y_OVERDRAW:int = PANE_HEIGHT; // how much to draw outside the window
+		
+		
+		
 		
 		public var xStart:BigInteger;
 		public var yStart:BigInteger;
 		public var xDelta:BigInteger;
 		public var yDelta:BigInteger;
-		public var xMax:BigInteger;
-		public var yMax:BigInteger;
+
 		public var xTemp:BigInteger;
 		public var yTemp:BigInteger;		
 		public var selectedX:BigInteger;
 		public var selectedY:BigInteger;		
 		
-		public var bitDepth:int;
 		
-		public var xRes:int; // pixel width
-		public var yRes:int; // pixel height
-		public var cellWidth:int; // each picture, with padding
-		public var cellHeight:int; // each picture, with padding
-		public var xCount:int; // cells per pane
-		public var yCount:int; // cells per pane
-		public var paneWidth:int; // a pane of cells
-		public var paneHeight:int; // a pane of cells
-		public var padding:int; // pixels between cells
 		private var xOffset:int; // mouse offset
 		private var yOffset:int; // mouse offset
 		private var panes:Array; // list of panes
 		private var tempPane:Pane; // a pane to munge
 		private var lastMouseX:int;
 		private var lastMouseY:int;
-		private var xOverdraw:int; // how much to draw outside the window
-		private var yOverdraw:int; // how much to draw outside the window
+
 		private var maxWidth:int; // max window width
 		private var maxHeight:int; // max window height
 		public var xPixelCount:int;
@@ -59,6 +70,10 @@ package com.kitschpatrol
 		
 		private var windowMask:Shape;
 		
+		private var renderQueue:Array = [];
+		
+		
+		
 		
 		public function Window(_x:int, _y:int, _width:int, _height:int) {
 			super();
@@ -73,38 +88,44 @@ package com.kitschpatrol
 			this.graphics.endFill();
 			
 			// simulation settings
-			xRes = 48;
-			yRes = 48;
-			bitDepth = 2;
 			xStart = BigInteger.nbv(0);
 			yStart = BigInteger.nbv(0);
 			selectedX = xStart.clone();
 			selectedX = yStart.clone();
 			xDelta = BigInteger.nbv(1);
 			yDelta = BigInteger.nbv(1);
-//			xDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
-//			yDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
-			xMax = BigInteger.nbv(bitDepth).pow(xRes * (yRes / 2)).subtract(BigInteger.nbv(1));
-			yMax = xMax.clone();
 			
-			xPixelCount = xRes * yRes / 2;
+			// this is 5 steps to white
+			//xDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
+			//yDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
+			
+			// this is 5000 steps to white
+			xDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(1000));
+			yDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(1000));
+
+			xStart = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
+			yStart = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);			
+			xStart = xStart.multiply(BigInteger.nbv(4));
+			yStart = yStart.multiply(BigInteger.nbv(4));
+			
+			
+
+			
+			xPixelCount = X_RES * Y_RES / 2;
 			yPixelCount = xPixelCount;
 			xPixelBytes = xPixelCount / 8;
 			yPixelBytes = yPixelCount / 8;
 			
 			// house keeping
-			padding = 2;
-			cellWidth = xRes + padding;
-			cellHeight = yRes + padding;
-			xCount = 6;
-			yCount = 6;
-			paneWidth = cellWidth * xCount;
-			paneHeight = cellHeight * yCount;
-			xOverdraw = paneWidth * 2;
-			yOverdraw = paneWidth * 2;
-			xByteEnd = xRes * (yRes / 2) * 4;
-			yByteEnd = xRes * yRes * 4;
-			pixelByteCount = xRes * yRes * 4;
+			
+
+
+
+
+
+			xByteEnd = X_RES * (Y_RES / 2) * 4;
+			yByteEnd = X_RES * Y_RES * 4;
+			pixelByteCount = X_RES * Y_RES * 4;
 			
 			xOffset = 0;
 			yOffset = 0;
@@ -127,6 +148,7 @@ package com.kitschpatrol
 			
 
 			this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+			
 		}
 		
 		
@@ -150,22 +172,31 @@ package com.kitschpatrol
 		
 		// true if the pane is in view. TODO could be more conservative with this?
 		private function inView(xTest:int, yTest:int):Boolean {
-			if((xTest > xOffset - xOverdraw)
-				&& (xTest < maxWidth + xOffset + xOverdraw)
-				&& (yTest > yOffset - yOverdraw)
-				&& (yTest < maxHeight + yOffset + yOverdraw)) {
+			if((xTest > xOffset - X_OVERDRAW)
+				&& (xTest < maxWidth + xOffset + X_OVERDRAW)
+				&& (yTest > yOffset - Y_OVERDRAW)
+				&& (yTest < maxHeight + yOffset + Y_OVERDRAW)) {
 				return true;
 			}
 			return false;
 		}
 		
+		
+		
 		// TODO roll this into fillView()?
 		// adds and removes children as appropriate
 		private function manageView():void {
+			
+			// also manage the render queue
+			if((renderQueue.length > 1) && !inView(renderQueue[0].x, renderQueue[0].x)) {
+				trace("back of the bus!");
+				renderQueue.push(renderQueue.shift()); // swap first and last
+			}
+			
 			for (var i:int = 0; i < panes.length; i++) {
 				tempPane = panes[i];
 				if (!inView(tempPane.x, tempPane.y) && this.contains(tempPane)) {
-					// remove it
+					// remove it from the drawing list if it's there
 					this.removeChild(tempPane);
 				}
 				else if(inView(tempPane.x, tempPane.y) && !this.contains(tempPane)) {
@@ -177,8 +208,8 @@ package com.kitschpatrol
 				
 		// adds new panes to the visible area
 		private function fillView():void {
-			for (var i:int = xOffset - xOverdraw; i < maxWidth + xOffset + xOverdraw; i += paneWidth) {
-				for (var j:int = yOffset - yOverdraw; j < maxHeight + yOffset + yOverdraw; j += paneHeight) {
+			for (var i:int = xOffset - X_OVERDRAW; i < maxWidth + xOffset + X_OVERDRAW; i += PANE_WIDTH) {
+				for (var j:int = yOffset - Y_OVERDRAW; j < maxHeight + yOffset + Y_OVERDRAW; j += PANE_HEIGHT) {
 					// add panes as necessarry
 					if (!paneExists(i, j)) {
 						
@@ -193,21 +224,52 @@ package com.kitschpatrol
 						}
 						else {
 							// figure out distance from the start value, multiply it out by delta
-							xTemp = xStart.add(xDelta.multiply(BigInteger.nbv(((i - panes[0].x) / paneWidth) * xCount)));
-							yTemp = yStart.add(yDelta.multiply(BigInteger.nbv(((j - panes[0].y) / paneHeight) * yCount)));
+							xTemp = xStart.add(xDelta.multiply(BigInteger.nbv(((i - panes[0].x) / PANE_WIDTH) * PANE_X_COUNT)));
+							yTemp = yStart.add(yDelta.multiply(BigInteger.nbv(((j - panes[0].y) / PANE_HEIGHT) * PANE_Y_COUNT)));
 							
 							// check the bounds, don't draw past them
 							if (xTemp.compareTo(BigInteger.ZERO) < 0) continue;
 							if (yTemp.compareTo(BigInteger.ZERO) < 0) continue;
-							if (xTemp.compareTo(xMax) > 0) continue;
-							if (yTemp.compareTo(yMax) > 0) continue;
+							if (xTemp.compareTo(X_MAX) > 0) continue;
+							if (yTemp.compareTo(Y_MAX) > 0) continue;
 						}						
 						
-						trace("xTemp: " + xTemp.toString(10));
+						//trace("xTemp: " + xTemp.toString(10));
 						tempPane = new Pane(this, i, j, xTemp, yTemp);
-						panes.push(tempPane);
+						panes.push(tempPane); // the main list
+						renderQueue.push(tempPane); // stack of panes to be rendered... could use boolean flag?
+						if(queueEmpty) renderPanes(); 
 					}
 				}
+			}
+		}
+		
+		// this is kind of ugly
+		private var queueEmpty:Boolean = true;
+		
+		private function onDoneRendering(e:Event):void {
+			trace("done rendering");
+			// recurses back to the render panes function
+			
+			e.target.removeEventListener(Pane.DONE_RENDERING, onDoneRendering);
+			renderPanes();
+		}
+		
+		
+		private function renderPanes():void {
+			trace(renderQueue);
+			if(renderQueue.length > 0) {
+
+				
+				
+				trace("rendering first of " + renderQueue.length);
+				queueEmpty = false; // different from array length! empty if nothing is in the queue AND nother is in the process of being rendered
+				renderQueue[0].addEventListener(Pane.DONE_RENDERING, onDoneRendering);
+				renderQueue.shift().renderCells(); // pop the first one and render it
+				// render the first pane in the queue
+			}
+			else {
+				queueEmpty = true;
 			}
 		}
 		
@@ -216,8 +278,8 @@ package com.kitschpatrol
 			xOffset += deltaX;
 			yOffset += deltaY;
 
-			xOffset %= paneWidth;
-			yOffset %= paneHeight;
+			xOffset %= PANE_WIDTH;
+			yOffset %= PANE_HEIGHT;
 			
 			// track cell center changes
 			xAccumulator += Math.abs(deltaX);
@@ -233,13 +295,13 @@ package com.kitschpatrol
 			fillView();
 			manageView();
 			
-			if(xAccumulator > cellWidth) {
+			if(xAccumulator > CELL_WIDTH) {
 				xAccumulator = 0;
 				// fire event
 				handleSelectionChange();
 			}
 			
-			if (yAccumulator > cellHeight) {
+			if (yAccumulator > CELL_HEIGHT) {
 				yAccumulator = 0;
 				// fire event
 				handleSelectionChange();
@@ -284,8 +346,8 @@ package com.kitschpatrol
 				if(tempPane != null) {
 					// compensate for the pane offset
 					trace("updating selected");
-					var xCell:int = Math.floor((windowCenter().x - tempPane.x) / cellWidth);
-					var yCell:int = Math.floor((windowCenter().y - tempPane.y) / cellHeight);
+					var xCell:int = Math.floor((windowCenter().x - tempPane.x) / CELL_WIDTH);
+					var yCell:int = Math.floor((windowCenter().y - tempPane.y) / CELL_HEIGHT);
 //					trace(xCell + " " + yCell)
 //					trace(tempPane.xPos.toString(10));
 //					trace(tempPane.yPos.toString(10));
@@ -318,8 +380,8 @@ package com.kitschpatrol
 						var xCell:int = xCenter.subtract(panes[i].xPos).intValue();
 						var yCell:int = yCenter.subtract(panes[i].yPos).intValue();
 						
-						var xMove:int = (windowCenter().x - panes[i].x - (xCell * cellWidth)) - cellWidth / 2;
-						var yMove:int = (windowCenter().y - panes[i].y - (yCell * cellHeight)) - cellWidth / 2 ;
+						var xMove:int = (windowCenter().x - panes[i].x - (xCell * CELL_WIDTH)) - CELL_WIDTH / 2;
+						var yMove:int = (windowCenter().y - panes[i].y - (yCell * CELL_HEIGHT)) - CELL_WIDTH / 2 ;
 						
 						// move
 						movePanes(xMove, yMove);
@@ -383,7 +445,7 @@ package com.kitschpatrol
 				
 				if(tempPane != null) {
 					// compensate for the pane offset
-					var xCell:int = Math.floor((windowCenter().x - tempPane.x) / cellWidth);
+					var xCell:int = Math.floor((windowCenter().x - tempPane.x) / CELL_WIDTH);
 					return tempPane.xPos.add(xDelta.multiply(BigInteger.nbv(xCell)));
 				}
 			}
@@ -404,7 +466,7 @@ package com.kitschpatrol
 				
 				if(tempPane != null) {
 					// compensate for the pane offset
-					var yCell:int = Math.floor((windowCenter().y - tempPane.y) / cellHeight);
+					var yCell:int = Math.floor((windowCenter().y - tempPane.y) / CELL_HEIGHT);
 					return tempPane.yPos.add(yDelta.multiply(BigInteger.nbv(yCell)));
 				}
 			}

@@ -32,6 +32,7 @@ package com.hurlant.math
 		
 		public static const ZERO:BigInteger = nbv(0);
 		public static const ONE:BigInteger  = nbv(1);
+		public static const TEN:BigInteger  = nbv(10);
 		
 		/*bi_internal */public var t:int; // number of chunks.
 		bi_internal var s:int; // sign

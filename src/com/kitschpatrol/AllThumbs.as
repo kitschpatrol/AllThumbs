@@ -21,7 +21,7 @@ package com.kitschpatrol {
 	import flash.utils.getTimer;
 	
 	// note modifications to big integer
-	[SWF(width="1024", height="768", backgroundColor="0x444444", frameRate="40")]	
+	[SWF(width="1360", height="768", backgroundColor="0x444444", frameRate="30")]	
 	
 	public class AllThumbs extends Sprite	{
 
@@ -47,8 +47,11 @@ package com.kitschpatrol {
 		
 		public function AllThumbs() {
 			// Build the window
-			window = new Window(0, 0, 1024, 600);
+			window = new Window(0, 0, 600, 600);
 			addChild(window);
+			
+			
+			/*
 			
 			// the crosshairs
 			var crosshairs:Shape = new Shape();
@@ -61,8 +64,8 @@ package com.kitschpatrol {
 			// the slider
 			deltaSlider = new HUISlider(this, 12, 740, "Delta", onDeltaSlide);
 			deltaSlider.minimum = 1;
-			deltaSlider.width = 600;
-			deltaSlider.maximum = 500;
+			deltaSlider.width = 346 * 2;
+			deltaSlider.maximum = 346;
 			thresholdValue = 0;
 		
 			// The Label
@@ -102,7 +105,8 @@ package com.kitschpatrol {
 			processedCameraBitmap.x = 900;
 			processedCameraBitmap.y = 625;
 			addChild(processedCameraBitmap);
-			
+
+			*/
 			
 		}
 		
@@ -160,7 +164,7 @@ package com.kitschpatrol {
 			
 			// center on the new location
 			var target:BigInteger = new BigInteger(locationText.text, 10);
-			var targetString:String = Utilities.zeroPad(target.toString(2), window.xRes * window.yRes);
+			var targetString:String = Utilities.zeroPad(target.toString(2), window.X_RES * window.Y_RES);
 			var xString:String = (targetString.substr(0, targetString.length / 2));
 			var yString:String = (targetString.substr(targetString.length / 2, targetString.length -1));
 			
@@ -179,9 +183,30 @@ package com.kitschpatrol {
 			
 		}
 		
+		private var fiveSteps:BigInteger = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
+		private var lastDelataSlideValue:int = 1;
+		
 		public function onDeltaSlide(e:Event):void {
-			trace(deltaSlider.value.toString());
-			window.setDelta(new BigInteger(deltaSlider.value.toString(), 10).multiply(new BigInteger("340282366920939581727705773432875169785", 10)));
+			
+			if(lastDelataSlideValue != deltaSlider.value) {
+			trace("New Delta: " + deltaSlider.value.toString());
+			
+			// special case for the end
+			if(deltaSlider.value == 346) {
+				trace("five steps");
+				window.setDelta(fiveSteps);
+			}
+			else if(deltaSlider.value == 1) {
+				window.setDelta(BigInteger.ONE);
+			}
+			else {
+				window.setDelta(BigInteger.TEN.pow(deltaSlider.value));
+			}
+			
+			}
+			
+			lastDelataSlideValue = deltaSlider.value;
+			//window.setDelta(fiveSteps);
 		}
 		
 		
