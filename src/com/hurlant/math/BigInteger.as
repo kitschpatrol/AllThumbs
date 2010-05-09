@@ -41,7 +41,7 @@ package com.hurlant.math
 
 		//bi_internal var a:Vector.<int>;
 		
-		public function BigInteger(value:* = null, radix:int = 0) {
+		public function BigInteger(value:* = null, radix:int = 0, unsigned:Boolean = true) {
 			a = new Array;
 			// must be set to length of the max number of bits we will need... no more than 77 (48 * 48 / 30)
 			//a = new Vector.<int>(77); not any faster
@@ -63,7 +63,7 @@ package com.hurlant.math
 			if (value is ByteArray) {
 				var array:ByteArray = value as ByteArray;
 				var length:int = radix || (array.length - array.position);
-				fromArray(array, length);
+				fromArray(array, length, unsigned);
 			}
 		}
 		public function dispose():void {
@@ -163,6 +163,9 @@ package com.hurlant.math
 		 * precision can be lost if it just can't fit.
 		 */
 		public function valueOf():Number {
+			if (s==-1) {
+				return -negate().valueOf();
+			}			
 			var coef:Number = 1;
 			var value:Number = 0;
 			for (var i:uint=0;i<t;i++) {
@@ -280,7 +283,7 @@ package com.hurlant.math
 		 * starting a current position
 		 * If length goes beyond the array, pad with zeroes.
 		 */
-		bi_internal function fromArray(value:ByteArray, length:int):void {
+		bi_internal function fromArray(value:ByteArray, length:int, unsigned:Boolean = true):void {
 			var p:int = value.position;
 			var i:int = p+length;
 			var sh:int = 0;
@@ -300,6 +303,12 @@ package com.hurlant.math
 				sh += k;
 				if (sh >= DB) sh -= DB;
 			}
+			if (!unsigned && (value[0]&0x80)==0x80) {
+				s = -1;
+				if (sh > 0) {
+					a[t-1] |= ((1<<(DB-sh))-1)<<sh;
+				}
+			}			
 			clamp();
 			value.position = Math.min(p+length,value.length);
 		}
@@ -523,7 +532,9 @@ package com.hurlant.math
 			}
 			ONE.dlShiftTo(ys,t);
 			t.subTo(y,y); // "negative" y so we can replace sub with am later.
-			trace(p);
+			
+			
+			
 			while(y.t<ys) y.(y.t++, 0);
 			while(--j >= 0) {
 				// Estimate quotient digit
@@ -1614,10 +1625,11 @@ package com.hurlant.math
 		
 		// adapted from processing		
 		public static function bigMap(value:BigInteger, istart:BigInteger, istop:BigInteger, ostart:BigInteger, ostop:BigInteger):BigInteger {
+
+			
 			return ostart.add(ostop.subtract(ostart).multiply(value.subtract(istart)).divide(istop.subtract(istart)));			
 			//return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));			
 		}
-		
 		
 		
 		// returns the number of ones in the base 2 representation of the number

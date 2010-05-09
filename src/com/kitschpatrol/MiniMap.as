@@ -6,14 +6,17 @@ package com.kitschpatrol
 	
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;
+	import flash.display.Shape;
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.MouseEvent;
 	
 	public class MiniMap extends Sprite
 	{
 		
 		private var window:Window;
 		private var map:Bitmap;
+		private var crosshairs:Shape = new Shape();
 		
 		public function MiniMap(_w:int, _h:int, _window:Window)
 		{
@@ -34,6 +37,9 @@ package com.kitschpatrol
 			var xOneCount:int = 0;
 			
 			var pix: int = 0;
+			
+			
+			
 			
 			map.bitmapData.lock();
 			for(var i:int = 0; i < map.bitmapData.width; i++) {
@@ -63,9 +69,19 @@ package com.kitschpatrol
 			
 			addChild(map);
 			
+			// add the crosshairs
+			crosshairs.graphics.clear();
+			crosshairs.graphics.beginFill(0xff0000);
+			crosshairs.graphics.drawRect(-3, -3, 6, 6);
+			crosshairs.graphics.endFill();
+			
+			addChild(crosshairs);
+			
 			window.addEventListener(Window.SELECTION_CHANGE, onSelectionChange);
 			
 			drawCoordinates(window.selectedX, window.selectedY);
+			
+			this.addEventListener(MouseEvent.CLICK, onMouseClick);
 			
 		}
 		
@@ -78,13 +94,30 @@ package com.kitschpatrol
 		private function drawCoordinates(xPos:BigInteger, yPos:BigInteger):void {
 			
 			// map the global coordiantes to local
-			var localX:int = BigInteger.bigMap(xPos, BigInteger.ZERO, window.X_MAX, BigInteger.ZERO, BigInteger.nbv(map.bitmapData.width)).intValue();
-			var localY:int = BigInteger.bigMap(yPos, BigInteger.ZERO, window.Y_MAX, BigInteger.ZERO, BigInteger.nbv(map.bitmapData.height)).intValue();
+
+			var localX:int = BigInteger.bigMap(xPos, BigInteger.ZERO, window.X_MAX.add(BigInteger.ONE), BigInteger.ZERO, BigInteger.nbv(map.bitmapData.width)).intValue();
+			var localY:int = BigInteger.bigMap(yPos, BigInteger.ZERO, window.Y_MAX.add(BigInteger.ONE), BigInteger.ZERO, BigInteger.nbv(map.bitmapData.height)).intValue();
+	
+			crosshairs.x = localX;
+			crosshairs.y = localY;
 			
 			trace(localX + " : " + localY);
 			
+		}
+		
+		private function setCoordinates(xPos:BigInteger, yPos:BigInteger):void {
+			// gotta jump...
+			window.centerOn(xPos, yPos);
+		}
+		
+		private function onMouseClick(e:MouseEvent):void {
+			trace(e.localX);
+			trace(e.localY);
 			
+			var bigX:BigInteger = BigInteger.bigMap(BigInteger.nbv(e.localX), BigInteger.ZERO, BigInteger.nbv(map.bitmapData.width), BigInteger.ZERO, window.X_MAX.add(BigInteger.ONE));
+			var bigY:BigInteger = BigInteger.bigMap(BigInteger.nbv(e.localY), BigInteger.ZERO, BigInteger.nbv(map.bitmapData.width), BigInteger.ZERO, window.Y_MAX.add(BigInteger.ONE));			
 			
+			setCoordinates(bigX, bigY);
 		}
 		
 	}

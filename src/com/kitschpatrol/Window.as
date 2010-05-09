@@ -247,7 +247,7 @@ package com.kitschpatrol
 			//trace(renderQueue);
 			if(renderQueue.length > 0) {
 	
-				trace("rendering first of " + renderQueue.length);
+				//trace("rendering first of " + renderQueue.length);
 				queueEmpty = false; // different from array length! empty if nothing is in the queue AND nother is in the process of being rendered
 				renderQueue[0].addEventListener(Pane.DONE_RENDERING, onDoneRendering);
 				renderQueue.shift().renderCells(); // pop the first one and render it
@@ -273,7 +273,7 @@ package com.kitschpatrol
 			}
 			
 			
-			this.setChildIndex(overlay, this.numChildren - 1);
+			//this.setChildIndex(overlay, this.numChildren - 1);
 			
 			
 		}
@@ -320,6 +320,8 @@ package com.kitschpatrol
 		}
 		
 		public function setDelta(newDelta:BigInteger):void {
+			trace("here: ");
+			trace(newDelta.toString(10));
 			// reset, remove all children
 
 			// trash the panes and the render queue
