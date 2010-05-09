@@ -21,7 +21,7 @@ package com.kitschpatrol {
 	import flash.utils.getTimer;
 	
 	// note modifications to big integer
-	[SWF(width="1360", height="768", backgroundColor="0x444444", frameRate="40")]	
+	[SWF(width="1360", height="768", backgroundColor="0x4a525a", frameRate="40")]	
 	
 	public class AllThumbs extends Sprite	{
 
