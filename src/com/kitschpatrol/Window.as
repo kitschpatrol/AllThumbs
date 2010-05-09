@@ -19,7 +19,7 @@ package com.kitschpatrol
 		public const BIT_DEPTH:int = 2;
 		public const PANE_X_COUNT:int = 6; // set this to determine pane size, cells per pane
 		public const PANE_Y_COUNT:int = 6;
-		public const PADDING:int = 2; // pixels between cells		
+		public const PADDING:int = 4; // pixels between cells		
 		
 		// derrived constants, don't touch
 		public const X_MAX:BigInteger = BigInteger.nbv(BIT_DEPTH).pow(X_RES * (Y_RES / 2)).subtract(BigInteger.nbv(1));
@@ -37,8 +37,8 @@ package com.kitschpatrol
 		public const PIXEL_BYTE_COUNT:int = X_RES * Y_RES * 4;			
 		
 		// multiply pane_width to draw more outside view
-		private const X_OVERDRAW:int = PANE_WIDTH * 2; // how much to draw outside the window
-		private const Y_OVERDRAW:int = PANE_HEIGHT * 2; // how much to draw outside the window
+		private var xOverdraw:int = PANE_WIDTH * 2; // how much to draw outside the window
+		private var yOverdraw:int = PANE_HEIGHT * 2; // how much to draw outside the window
 		
 		// variables
 		public var xStart:BigInteger;
@@ -55,8 +55,8 @@ package com.kitschpatrol
 		private var maxWidth:int; // max window width
 		private var maxHeight:int; // max window height		
 		
-		private var panes:Array = []; // list of panes		
-		private var renderQueue:Array = [];		
+		private var panes:Vector.<Pane> = new Vector.<Pane>(); // list of panes		
+		private var renderQueue:Vector.<Pane> = new Vector.<Pane>();		
 		
 		// scratch
 		public var xTemp:BigInteger;
@@ -66,7 +66,11 @@ package com.kitschpatrol
 		private var xAccumulator:int = 0; // track cell sized movements to fire change event
 		private var yAccumulator:int = 0;
 		
-		private var windowMask:Shape;
+		private var windowMask:Shape = new Shape();;
+		
+		
+		// temp
+		private var overlay:Shape = new Shape();
 		
 		public function Window(_x:int, _y:int, _width:int, _height:int) {
 			super();
@@ -77,7 +81,7 @@ package com.kitschpatrol
 			maxHeight = _height;
 
 			// fill the background
-			this.graphics.beginFill(0x222222);
+			this.graphics.beginFill(0x666666);
 			this.graphics.drawRect(0, 0, _width, _height);
 			this.graphics.endFill();
 			
@@ -95,7 +99,7 @@ package com.kitschpatrol
 //			xDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(100));
 //			yDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(100));
 
-			// delete and reinstantiat the whole window on teleport? that might be the best cleanup method...
+			// delete and reinstantiate the whole window on teleport? that might be the best cleanup method...
 //			xStart = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
 //			yStart = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);			
 //			xStart = xStart.multiply(BigInteger.nbv(4));
@@ -104,6 +108,8 @@ package com.kitschpatrol
 			selectedX = xStart.clone();
 			selectedX = yStart.clone();
 
+			// temp overlay
+			addChild(overlay);
 
 			// populate the window			
 			fillView();
@@ -111,11 +117,13 @@ package com.kitschpatrol
 			centerOn(xStart, yStart);
 			
 			// apply mask
-			windowMask = new Shape();
 			windowMask.graphics.beginFill(0);
 			windowMask.graphics.drawRect(0, 0, _width, _height);
 			windowMask.graphics.endFill();
 			this.mask = windowMask;
+			
+
+			
 
 			this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
 		}
@@ -141,26 +149,36 @@ package com.kitschpatrol
 		
 		// true if the pane is in view. TODO could be more conservative with this?
 		private function inView(xTest:int, yTest:int):Boolean {
-			if((xTest > xOffset - X_OVERDRAW)
-				&& (xTest < maxWidth + xOffset + X_OVERDRAW)
-				&& (yTest > yOffset - Y_OVERDRAW)
-				&& (yTest < maxHeight + yOffset + Y_OVERDRAW)) {
+			if((xTest > xOffset - xOverdraw)
+				&& (xTest < maxWidth + xOffset + xOverdraw)
+				&& (yTest > yOffset - yOverdraw)
+				&& (yTest < maxHeight + yOffset + yOverdraw)) {
 				return true;
 			}
 			return false;
 		}
 		
 		
+		public function setScale(_x:Number, _y:Number):void {
+			this.scaleX = _x;
+			this.scaleY = _y;
+			
+			this.xOverdraw = (2 / _x) * PANE_WIDTH;
+			this.yOverdraw = (2 / _y) * PANE_HEIGHT;
+			
+			
+
+			this.x =  ((-maxWidth * _x) / 2) + (maxWidth / 2);
+			this.y =  ((-maxHeight * _y) / 2) + (maxHeight / 2);
+			
+		}
+		
 		
 		// TODO roll this into fillView()?
 		// adds and removes children as appropriate
 		private function manageView():void {
 			
-			// also manage the render queue
-			if((renderQueue.length > 1) && !inView(renderQueue[0].x, renderQueue[0].x)) {
-				trace("back of the bus!");
-				renderQueue.push(renderQueue.shift()); // swap first and last
-			}
+
 			
 			for (var i:int = 0; i < panes.length; i++) {
 				tempPane = panes[i];
@@ -177,8 +195,8 @@ package com.kitschpatrol
 				
 		// adds new panes to the visible area
 		private function fillView():void {
-			for (var i:int = xOffset - X_OVERDRAW; i < maxWidth + xOffset + X_OVERDRAW; i += PANE_WIDTH) {
-				for (var j:int = yOffset - Y_OVERDRAW; j < maxHeight + yOffset + Y_OVERDRAW; j += PANE_HEIGHT) {
+			for (var i:int = xOffset - xOverdraw; i < maxWidth + xOffset + xOverdraw; i += PANE_WIDTH) {
+				for (var j:int = yOffset - yOverdraw; j < maxHeight + yOffset + yOverdraw; j += PANE_HEIGHT) {
 					// add panes as necessarry
 					if (!paneExists(i, j)) {
 						
@@ -204,6 +222,7 @@ package com.kitschpatrol
 						}						
 						
 						//trace("xTemp: " + xTemp.toString(10));
+						//trace("add");
 						tempPane = new Pane(this, i, j, xTemp, yTemp);
 						panes.push(tempPane); // the main list
 						renderQueue.push(tempPane); // stack of panes to be rendered... could use boolean flag?
@@ -211,13 +230,14 @@ package com.kitschpatrol
 					}
 				}
 			}
+			sortRenderQueue();
 		}
 		
 		// this is kind of ugly
 		private var queueEmpty:Boolean = true;
 		
 		private function onDoneRendering(e:Event):void {
-			trace("done rendering");
+			//trace("done rendering");
 			// recurses back to the render panes function
 			
 			e.target.removeEventListener(Pane.DONE_RENDERING, onDoneRendering);
@@ -226,11 +246,9 @@ package com.kitschpatrol
 		
 		
 		private function renderPanes():void {
-			trace(renderQueue);
+			//trace(renderQueue);
 			if(renderQueue.length > 0) {
-
-				
-				
+	
 				trace("rendering first of " + renderQueue.length);
 				queueEmpty = false; // different from array length! empty if nothing is in the queue AND nother is in the process of being rendered
 				renderQueue[0].addEventListener(Pane.DONE_RENDERING, onDoneRendering);
@@ -238,9 +256,33 @@ package com.kitschpatrol
 				// render the first pane in the queue
 			}
 			else {
+				overlay.graphics.clear();
 				queueEmpty = true;
 			}
 		}
+		
+		// sorts the render queue based on distance from the center of the screen
+		private function sortRenderQueue():void {
+			overlay.graphics.clear();
+			for(var i:int = 0; i < renderQueue.length; i++) {
+				renderQueue[i].distance = Utilities.distance(windowCenter().x, windowCenter().y, renderQueue[i].x, renderQueue[i].y); 
+				renderQueue.sort(compareDistance);
+			
+				// draw lines for debug
+				overlay.graphics.lineStyle(1, 0xff0000);
+				overlay.graphics.moveTo(windowCenter().x, windowCenter().y);
+				overlay.graphics.lineTo(renderQueue[i].x, renderQueue[i].y);
+			}
+			
+			
+			this.setChildIndex(overlay, this.numChildren - 1);
+			
+			
+		}
+		
+		private function compareDistance(a:Pane, b:Pane ):Number {
+			return a.distance - b.distance;
+		}		
 		
 		private function movePanes(deltaX:int, deltaY:int):void {
 			// track the offset
@@ -285,8 +327,9 @@ package com.kitschpatrol
 				this.removeChildAt(0);
 			}
 			
-			// trash the panes
-			panes = new Array();
+			// trash the panes and the render queue
+			panes = new Vector.<Pane>();		
+			renderQueue = new Vector.<Pane>();
 			
 			
 			// update the delta
@@ -314,7 +357,7 @@ package com.kitschpatrol
 				
 				if(tempPane != null) {
 					// compensate for the pane offset
-					trace("updating selected");
+					//trace("updating selected");
 					var xCell:int = Math.floor((windowCenter().x - tempPane.x) / CELL_WIDTH);
 					var yCell:int = Math.floor((windowCenter().y - tempPane.y) / CELL_HEIGHT);
 //					trace(xCell + " " + yCell)
@@ -359,7 +402,7 @@ package com.kitschpatrol
 				}
 			}
 			
-			// if we get here, we need to warp
+			// if we get here, we need to warp, easier just to recreate the whole thing?
 			if(!foundLocal) {
 				trace("gotta warp");
 				
@@ -370,7 +413,7 @@ package com.kitschpatrol
 				}
 				
 				// trash the panes
-				panes = new Array();
+				panes = new Vector.<Pane>();
 				
 				selectedX = xCenter;
 				selectedY = yCenter;

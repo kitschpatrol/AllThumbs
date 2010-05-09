@@ -49,6 +49,7 @@ package com.kitschpatrol {
 			// Build the window
 			window = new Window(0, 0, 1360, 768);
 			addChild(window);
+			window.setScale(1, 1);
 			
 			
 			// what is faster, 2x the operations on half the bits?
@@ -74,58 +75,58 @@ package com.kitschpatrol {
 			
 			
 			
-			// the crosshairs
-			var crosshairs:Shape = new Shape();
-			crosshairs.graphics.lineStyle(4, 0xff0000, 0.3);
-			crosshairs.graphics.drawRect(0, 0, window.CELL_WIDTH * 1.2, window.CELL_HEIGHT * 1.2);
-			crosshairs.x = window.windowCenter().x - crosshairs.width / 2;
-			crosshairs.y = window.windowCenter().y - crosshairs.height / 2;
-			addChild(crosshairs);
-			
-			// the slider
-			deltaSlider = new HUISlider(this, 12, 740, "Delta", onDeltaSlide);
-			deltaSlider.minimum = 1;
-			deltaSlider.width = 346 * 2;
-			deltaSlider.maximum = 346;
-			thresholdValue = 0;
-		
-			// The Label
-			textLabel = new Label(this, 12, 605, "Possibility #:");
-			
-			
-			// the text
-			locationText = new Text(this, 12, 625, "0");
-			locationText.width = 600;
-			locationText.height = 60;
-			
-			// the text submit button
-			submitTextButton = new PushButton(this, 12, 690, "GO", onSubmitText);
-			
-			// the camera submit button
-			submitCameraButton = new PushButton(this, 900, 680, "GO", onSubmitCamera);
-			submitCameraButton.width = 48;
-			
-			window.addEventListener(Window.SELECTION_CHANGE, onSelectionChange);
-			
-			// the camera slider
-			thresholdSlider = new VSlider(this, 880, 625, onThresholdSlide);
-			thresholdSlider.minimum = 0;
-			thresholdSlider.maximum = 0xffffff;
-			thresholdSlider.height = 75;
-			
-			// The camera
-			camera = Camera.getCamera();
-			camera.setMode(64, 48, 30);
-			video = new Video(64, 48);
-			video.attachCamera(camera);
-			video.addEventListener(Event.ENTER_FRAME, onCameraUpdate);
-
-			cameraRect = new Rectangle(0, 0, 48, 48);
-			cameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0));
-			processedCameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0xffffff));
-			processedCameraBitmap.x = 900;
-			processedCameraBitmap.y = 625;
-			addChild(processedCameraBitmap);
+//			// the crosshairs
+//			var crosshairs:Shape = new Shape();
+//			crosshairs.graphics.lineStyle(4, 0xff0000, 0.3);
+//			crosshairs.graphics.drawRect(0, 0, window.CELL_WIDTH * 1.2, window.CELL_HEIGHT * 1.2);
+//			crosshairs.x = window.windowCenter().x - crosshairs.width / 2;
+//			crosshairs.y = window.windowCenter().y - crosshairs.height / 2;
+//			addChild(crosshairs);
+//			
+//			// the slider
+//			deltaSlider = new HUISlider(this, 12, 740, "Delta", onDeltaSlide);
+//			deltaSlider.minimum = 1;
+//			deltaSlider.width = 346 * 2;
+//			deltaSlider.maximum = 346;
+//			thresholdValue = 0;
+//		
+//			// The Label
+//			textLabel = new Label(this, 12, 605, "Possibility #:");
+//			
+//			
+//			// the text
+//			locationText = new Text(this, 12, 625, "0");
+//			locationText.width = 600;
+//			locationText.height = 60;
+//			
+//			// the text submit button
+//			submitTextButton = new PushButton(this, 12, 690, "GO", onSubmitText);
+//			
+//			// the camera submit button
+//			submitCameraButton = new PushButton(this, 900, 680, "GO", onSubmitCamera);
+//			submitCameraButton.width = 48;
+//			
+//			window.addEventListener(Window.SELECTION_CHANGE, onSelectionChange);
+//			
+//			// the camera slider
+//			thresholdSlider = new VSlider(this, 880, 625, onThresholdSlide);
+//			thresholdSlider.minimum = 0;
+//			thresholdSlider.maximum = 0xffffff;
+//			thresholdSlider.height = 75;
+//			
+//			// The camera
+//			camera = Camera.getCamera();
+//			camera.setMode(64, 48, 30);
+//			video = new Video(64, 48);
+//			video.attachCamera(camera);
+//			video.addEventListener(Event.ENTER_FRAME, onCameraUpdate);
+//
+//			cameraRect = new Rectangle(0, 0, 48, 48);
+//			cameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0));
+//			processedCameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0xffffff));
+//			processedCameraBitmap.x = 900;
+//			processedCameraBitmap.y = 625;
+//			addChild(processedCameraBitmap);
 
 			
 			

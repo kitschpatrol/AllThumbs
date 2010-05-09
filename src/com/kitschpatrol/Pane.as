@@ -1,5 +1,6 @@
 package com.kitschpatrol {
 
+	import com.hurlant.crypto.symmetric.NullPad;
 	import com.hurlant.math.BigInteger;
 	
 	import flash.display.Bitmap;
@@ -34,6 +35,9 @@ package com.kitschpatrol {
 		private var yIndex:int;
 		private var cellsPerFrame:int;
 		private var cellsThisFrame:int;
+		
+		// sort render queue based on distance
+		public var distance:Number = Number.MAX_VALUE; // start as far away as possible so it won't get sorted to the front
 		
 		public var isRendered:Boolean = false;
 		

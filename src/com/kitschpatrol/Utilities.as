@@ -25,6 +25,11 @@ package com.kitschpatrol
 			}
 			return arr2;
 		}
+		
+		
+		public static function distance(x1:int, y1:int, x2:int, y2:int):Number {
+			return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+		}
 
 		
 	}
