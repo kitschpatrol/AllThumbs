@@ -33,12 +33,13 @@ package com.bit101.components
 	import flash.text.TextField;
 	import flash.text.TextFieldAutoSize;
 	import flash.text.TextFormat;
+	import flash.text.FontStyle;
 	
 	public class Label extends Component
 	{
 		private var _autoSize:Boolean = true;
 		private var _text:String = "";
-		private var _tf:TextField;
+		public var _tf:TextField;
 		
 		/**
 		 * Constructor
@@ -75,7 +76,8 @@ package com.bit101.components
 			_tf.selectable = false;
 			_tf.mouseEnabled = false;
 			_tf.defaultTextFormat = new TextFormat(Style.fontName, Style.fontSize, Style.LABEL_TEXT);
-			_tf.text = _text;			
+			_tf.text = _text;
+			_tf.textColor = 0xffffff
 			addChild(_tf);
 			draw();
 		}

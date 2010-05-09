@@ -36,7 +36,7 @@ package com.bit101.components
 	{
 		protected var _back:Sprite;
 		protected var _face:Sprite;
-		protected var _label:Label;
+		public var _label:Label;
 		protected var _labelText:String = "";
 		protected var _over:Boolean = false;
 		protected var _down:Boolean = false;

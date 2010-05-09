@@ -26,6 +26,8 @@ package com.kitschpatrol {
 	import flash.utils.ByteArray;
 	import flash.utils.getTimer;
 	
+	import flashx.textLayout.tlf_internal;
+	
 	// note modifications to big integer
 	[SWF(width="1360", height="768", backgroundColor="0x4a525a", frameRate="40")]	
 	
@@ -52,18 +54,23 @@ package com.kitschpatrol {
 		
 		// New navigation
 		private var viewHolder:NavHolder;
+		private var navHolder:NavHolder;
 		
 		
 		public function AllThumbs() {
+			toggleFullScreen();
+			
 			// Build the window
 			window = new Window(0, 0, 1360, 768);
 			addChild(window);
 			
 			
 			// Build the gui
-			viewHolder = new NavHolder();
+			
+			// The view panel
+			viewHolder = new NavHolder(480, 180);
 			viewHolder.x = 23;
-			viewHolder.y = 580;
+			viewHolder.y = 550;
 			addChild(viewHolder);
 			
 			var viewControls:NavPane = new NavPane("View");
@@ -71,27 +78,84 @@ package com.kitschpatrol {
 			// the delta slider
 			deltaSlider = new HUISlider(viewControls, 10, 40, "Delta", onDeltaSlide);
 			deltaSlider.minimum = 1;
-			deltaSlider.width = 346;
+			deltaSlider.width = 340;
 			deltaSlider.maximum = 346;
-			
+			deltaSlider.labelPrecision = 0;
+			deltaSlider.height = 20;
+
 			// the zoom slider
 			var zoomSlider:HUISlider = new HUISlider(viewControls, 10, 80, "Zoom", onZoomSlide); 
 			zoomSlider.minimum = 1;
-			zoomSlider.width = 346;
+			zoomSlider.width = 340;
 			zoomSlider.maximum = 5;
 			zoomSlider.tick = .1;
 			
 			// the mini map
+			var mapLabel:Label = new Label(viewHolder, 340, 40, "Map");
 			var miniMap:MiniMap = new MiniMap(120, 120, window);
-			miniMap.x = 380;
-			miniMap.y = 40;
-			addChild(miniMap);
-			
+			miniMap.x = 340;
+			miniMap.y = 60;
+			viewHolder.addChild(miniMap);
 			
 			viewHolder.addPane(viewControls);
 			
+			// The Navigation Panel
+			navHolder = new NavHolder(480, 180);
+			navHolder.x = 1360 - 527;
+			navHolder.y = 550;
+			addChild(navHolder);
 			
-			thresholdValue = 0;			
+			// the camera tab
+			var cameraPane:NavPane = new NavPane("Camera");
+			
+				
+			// the camera slider
+			thresholdValue = 0;
+			thresholdSlider = new VSlider(cameraPane, 20, 40, onThresholdSlide);
+			thresholdSlider.minimum = 0;
+			thresholdSlider.maximum = 0xffffff;
+			thresholdSlider.height = 120;
+			
+			// The camera
+			camera = Camera.getCamera();
+			camera.setMode(64, 48, 30);
+			video = new Video(64, 48);
+			video.attachCamera(camera);
+			video.addEventListener(Event.ENTER_FRAME, onCameraUpdate);
+			
+			cameraRect = new Rectangle(0, 0, 48, 48);
+			cameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0));
+			processedCameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0xffffff));
+			processedCameraBitmap.x = 50;
+			processedCameraBitmap.y = 40;
+			processedCameraBitmap.scaleX = 2.5;
+			processedCameraBitmap.scaleY = 2.5;
+			cameraPane.addChild(processedCameraBitmap);
+			
+			// the camera submit button
+			submitCameraButton = new PushButton(cameraPane, 50, 170, "GO", onSubmitCamera);
+			submitCameraButton._label._tf.textColor = 0x0;
+			submitCameraButton.width = 120;
+			
+			navHolder.addPane(cameraPane);
+			
+			// Text Pane
+			var textPane:NavPane = new NavPane("Location");
+			textLabel = new Label(textPane, 10, 30, "Possibility #:");			
+			
+			locationText = new Text(textPane, 10, 50, "0");
+			locationText.width = 460;
+			locationText.height = 120;
+			
+			// the text submit button
+			submitTextButton = new PushButton(textPane, 10, 175, "GO", onSubmitText);
+			submitTextButton._label._tf.textColor = 0x0;			
+			
+			window.addEventListener(Window.SELECTION_CHANGE, onSelectionChange);			
+			
+			navHolder.addPane(textPane);
+			
+
 			
 			// set up a full screen option in the context menu
 			var myContextMenu:ContextMenu = new ContextMenu();
@@ -105,6 +169,8 @@ package com.kitschpatrol {
 			stage.quality = StageQuality.HIGH;
 			
 			
+			
+			
 //			// the crosshairs
 //			var crosshairs:Shape = new Shape();
 //			crosshairs.graphics.lineStyle(4, 0xff0000, 0.3);
@@ -112,51 +178,6 @@ package com.kitschpatrol {
 //			crosshairs.x = window.windowCenter().x - crosshairs.width / 2;
 //			crosshairs.y = window.windowCenter().y - crosshairs.height / 2;
 //			addChild(crosshairs);
-//			
-//			// the slider
-//			deltaSlider = new HUISlider(this, 12, 740, "Delta", onDeltaSlide);
-//			deltaSlider.minimum = 1;
-//			deltaSlider.width = 346 * 2;
-//			deltaSlider.maximum = 346;
-//			thresholdValue = 0;
-//		
-//			// The Label
-//			textLabel = new Label(this, 12, 605, "Possibility #:");
-//			
-//			
-//			// the text
-//			locationText = new Text(this, 12, 625, "0");
-//			locationText.width = 600;
-//			locationText.height = 60;
-//			
-//			// the text submit button
-//			submitTextButton = new PushButton(this, 12, 690, "GO", onSubmitText);
-//			
-//			// the camera submit button
-//			submitCameraButton = new PushButton(this, 900, 680, "GO", onSubmitCamera);
-//			submitCameraButton.width = 48;
-//			
-//			window.addEventListener(Window.SELECTION_CHANGE, onSelectionChange);
-//			
-//			// the camera slider
-//			thresholdSlider = new VSlider(this, 880, 625, onThresholdSlide);
-//			thresholdSlider.minimum = 0;
-//			thresholdSlider.maximum = 0xffffff;
-//			thresholdSlider.height = 75;
-//			
-//			// The camera
-//			camera = Camera.getCamera();
-//			camera.setMode(64, 48, 30);
-//			video = new Video(64, 48);
-//			video.attachCamera(camera);
-//			video.addEventListener(Event.ENTER_FRAME, onCameraUpdate);
-//
-//			cameraRect = new Rectangle(0, 0, 48, 48);
-//			cameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0));
-//			processedCameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0xffffff));
-//			processedCameraBitmap.x = 900;
-//			processedCameraBitmap.y = 625;
-//			addChild(processedCameraBitmap);
 
 			
 			
