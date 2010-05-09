@@ -11,12 +11,18 @@ package com.kitschpatrol {
 	import flash.display.BitmapData;
 	import flash.display.Shape;
 	import flash.display.Sprite;
+	import flash.display.StageDisplayState;
+	import flash.display.StageQuality;
+	import flash.display.StageScaleMode;
 	import flash.events.ActivityEvent;
+	import flash.events.ContextMenuEvent;
 	import flash.events.Event;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	import flash.media.Camera;
 	import flash.media.Video;
+	import flash.ui.ContextMenu;
+	import flash.ui.ContextMenuItem;
 	import flash.utils.ByteArray;
 	import flash.utils.getTimer;
 	
@@ -44,35 +50,59 @@ package com.kitschpatrol {
 		private var cameraPixelStringY:String;
 		private var thresholdValue:Number;
 		
+		// New navigation
+		private var viewHolder:NavHolder;
+		
 		
 		public function AllThumbs() {
 			// Build the window
 			window = new Window(0, 0, 1360, 768);
 			addChild(window);
-			window.setScale(1, 1);
 			
 			
-			// what is faster, 2x the operations on half the bits?
-			// or 1x the operations on twice the bits
+			// Build the gui
+			viewHolder = new NavHolder();
+			viewHolder.x = 23;
+			viewHolder.y = 580;
+			addChild(viewHolder);
 			
-//			var full:BigInteger = new BigInteger("3742053650892133432367999773538322459225928823527575869347258443714776254479140165467924450143929014376701328043796892084250680644651644268919891406030558009514559848402392186697349032657288467726728117428485865736692545611669179323917560467904459270003565249200768855069969069462910188335948939853235385655600614050799627402904169955617680686939217306230732743306013312855692685442723231659949822010462888578091073832552856131420378840703853686445535243055462767679945780563431553986820134725467051353840270015201262955847832589866641019681571016376279703475133297517542073557917754709550486937454822846451632280550418910946262563991699255138480187856382366661603621981981643212128456085078015", 10);
-//			var half:BigInteger = new BigInteger("61172327492847069472032393719205726809135813743440799050195397570919697796091958321786863938157971792315844506873509046544459008355036150650333616890210625686064472971480622053109783197015954399612052812141827922088117778074833698589048132156300022844899841969874763871624802603515651998113045708569927237462546233168834543264678118409417047146495",10);
-//			var delta:BigInteger = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(1000));
-//			
-//			var start:int = getTimer();
-//			for (var i:int = 0; i < 200; i++) {
-//				full = full.add(delta);
-//				full.toPixels();
-//			}
-//			trace("Full: " + (getTimer() - start));
-//			
-//			start = getTimer();			
-//			for (var j:int = 0; j < 400; j++) {
-//				half = half.add(delta);
-//				half.toPixels();
-//			}			
-//			trace("Half: " + (getTimer() - start));			
+			var viewControls:NavPane = new NavPane("View");
 			
+			// the delta slider
+			deltaSlider = new HUISlider(viewControls, 10, 40, "Delta", onDeltaSlide);
+			deltaSlider.minimum = 1;
+			deltaSlider.width = 346;
+			deltaSlider.maximum = 346;
+			
+			// the zoom slider
+			var zoomSlider:HUISlider = new HUISlider(viewControls, 10, 80, "Zoom", onZoomSlide); 
+			zoomSlider.minimum = 1;
+			zoomSlider.width = 346;
+			zoomSlider.maximum = 5;
+			zoomSlider.tick = .1;
+			
+			// the mini map
+			var miniMap:MiniMap = new MiniMap(120, 120, window);
+			miniMap.x = 380;
+			miniMap.y = 40;
+			addChild(miniMap);
+			
+			
+			viewHolder.addPane(viewControls);
+			
+			
+			thresholdValue = 0;			
+			
+			// set up a full screen option in the context menu
+			var myContextMenu:ContextMenu = new ContextMenu();
+			var item:ContextMenuItem = new ContextMenuItem("Toggle Full Screen");
+			myContextMenu.customItems.push(item);
+			item.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onFullScreenContextMenuSelect);
+			contextMenu = myContextMenu;
+
+			// set up the stage
+			stage.scaleMode = StageScaleMode.NO_SCALE;
+			stage.quality = StageQuality.HIGH;
 			
 			
 //			// the crosshairs
@@ -130,6 +160,10 @@ package com.kitschpatrol {
 
 			
 			
+		}
+		
+		private function onZoomSlide(e:Event):void {
+			window.setScale(e.target.value, e.target.value);
 		}
 		
 		private function onCameraUpdate(e:Event):void {
@@ -208,6 +242,9 @@ package com.kitschpatrol {
 		private var fiveSteps:BigInteger = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
 		private var lastDelataSlideValue:int = 1;
 		
+		
+		
+		
 		public function onDeltaSlide(e:Event):void {
 			
 			if(lastDelataSlideValue != deltaSlider.value) {
@@ -232,6 +269,22 @@ package com.kitschpatrol {
 		}
 		
 		
+		
+		
+		
+		private function onFullScreenContextMenuSelect(e:Event):void {
+			toggleFullScreen();
+		}
+		
+		private function toggleFullScreen():void {
+			if (stage.displayState == StageDisplayState.NORMAL) {
+				stage.displayState = StageDisplayState.FULL_SCREEN;
+			}
+			else {
+				stage.displayState = StageDisplayState.NORMAL;
+			}
+		}
+
 
 	}	
 }

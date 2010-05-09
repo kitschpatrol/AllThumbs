@@ -32,6 +32,17 @@ package com.kitschpatrol
 		}
 
 		
+		public static function map(value:Number, istart:Number, istop:Number, ostart:Number, ostop:Number):Number {
+			return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
+		}
+		
+		public static function rgbToHex(r:uint, g:uint, b:uint):uint{
+			var hex:uint = (r << 16 | g << 8 | b);
+			return hex;
+		}
+
+
+		
 	}
 	
 }

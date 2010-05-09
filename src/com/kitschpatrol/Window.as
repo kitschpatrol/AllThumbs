@@ -19,7 +19,7 @@ package com.kitschpatrol
 		public const BIT_DEPTH:int = 2;
 		public const PANE_X_COUNT:int = 8; // set this to determine pane size, cells per pane
 		public const PANE_Y_COUNT:int = 8;
-		public const PADDING:int = 20; // pixels between cells		
+		public const PADDING:int = 2; // pixels between cells		
 		
 		// derrived constants, don't touch
 		public const X_MAX:BigInteger = BigInteger.nbv(BIT_DEPTH).pow(X_RES * (Y_RES / 2)).subtract(BigInteger.nbv(1));
@@ -164,10 +164,10 @@ package com.kitschpatrol
 			this.scaleY = _y;
 			
 			// this needs work, probably a table of values instead
-			this.xOverdraw = (2 / _x) * PANE_WIDTH;
-			this.yOverdraw = (2 / _y) * PANE_HEIGHT;
+			//this.xOverdraw = (2 / _x) * PANE_WIDTH;
+			//this.yOverdraw = (2 / _y) * PANE_HEIGHT;
 			
-
+			
 			this.x =  ((-maxWidth * _x) / 2) + (maxWidth / 2);
 			this.y =  ((-maxHeight * _y) / 2) + (maxHeight / 2);
 			
@@ -177,8 +177,6 @@ package com.kitschpatrol
 		// TODO roll this into fillView()?
 		// adds and removes children as appropriate
 		private function manageView():void {
-			
-
 			
 			for (var i:int = 0; i < panes.length; i++) {
 				tempPane = panes[i];
@@ -286,8 +284,8 @@ package com.kitschpatrol
 		
 		private function movePanes(deltaX:int, deltaY:int):void {
 			// track the offset
-			xOffset += deltaX;
-			yOffset += deltaY;
+			xOffset += (deltaX);
+			yOffset += (deltaY);
 
 			xOffset %= PANE_WIDTH;
 			yOffset %= PANE_HEIGHT;
@@ -323,20 +321,23 @@ package com.kitschpatrol
 		
 		public function setDelta(newDelta:BigInteger):void {
 			// reset, remove all children
-			while(this.numChildren > 0) {
-				this.removeChildAt(0);
-			}
-			
+
 			// trash the panes and the render queue
-			panes = new Vector.<Pane>();		
-			renderQueue = new Vector.<Pane>();
+			for(var i:int = 0; i < panes.length; i++) {
+				panes[i].bitmapData.dispose();
+				
+				if (this.contains(panes[i])) {
+					this.removeChild(panes[i]);
+				}
+			}	
 			
+			panes = new Vector.<Pane>();
+			renderQueue = new Vector.<Pane>();
 			
 			// update the delta
 			xDelta = newDelta;
 			yDelta = newDelta;
 	
-			
 			xStart = selectedX;
 			yStart = selectedY;
 			

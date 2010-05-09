@@ -523,6 +523,7 @@ package com.hurlant.math
 			}
 			ONE.dlShiftTo(ys,t);
 			t.subTo(y,y); // "negative" y so we can replace sub with am later.
+			trace(p);
 			while(y.t<ys) y.(y.t++, 0);
 			while(--j >= 0) {
 				// Estimate quotient digit
@@ -1609,7 +1610,72 @@ package com.hurlant.math
 			// return m ? r : "0";
 			
 			return ba;
-		}		
+		}
+		
+		// adapted from processing		
+		public static function bigMap(value:BigInteger, istart:BigInteger, istop:BigInteger, ostart:BigInteger, ostop:BigInteger):BigInteger {
+			return ostart.add(ostop.subtract(ostart).multiply(value.subtract(istart)).divide(istop.subtract(istart)));			
+			//return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));			
+		}
+		
+		
+		
+		// returns the number of ones in the base 2 representation of the number
+		public function getOneCount():int {
+			var k:int = 1; // base 2
+			
+			var km:int = (1<<k)-1;
+			
+			var oneCount:int = 0;
+			
+			var d:int = 0;
+			var m:Boolean = false;
+			var ba:ByteArray = new ByteArray();
+			//var r:String = "";
+			var i:int = t;
+			var p:int = DB-(i*DB)%k;
+			
+			// i is number of chunks, 39
+			// a is the array of chunks
+			
+			
+			if (i-- > 0) {
+				
+				//				// return if the number is small
+				//				if (p < DB && (d = a[i] >> p) > 0) {
+				//					m = true;
+				//					//r = d.toString(36);
+				//					trace("hi, bigint in trouble");
+				//				}
+				
+				// go through each chunk
+				while (i >= 0) {
+					if (p < k) {
+						d = (a[i]&((1<<p)-1))<<(k-p);
+						d|= a[--i]>>(p+=DB-k);
+					} else {
+						d = (a[i]>>(p-=k))&km;
+						if (p<=0) {
+							p += DB;
+							--i;
+						}
+					}
+					if (d>0) {
+						m = true;
+					}
+					if (m) {
+						// add the the string
+						if(d == 1) {
+							oneCount++;
+						}
+					}
+				}
+			}
+			// if M is true, return the string, otherwise return 0
+			// return m ? r : "0";
+			
+			return oneCount;
+		}
 		
 		
 		

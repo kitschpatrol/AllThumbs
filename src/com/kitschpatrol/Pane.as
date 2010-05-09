@@ -26,6 +26,9 @@ package com.kitschpatrol {
 		private var xOffset:int = 0;
 		private var yOffset:int = 0;
 		
+		private var xBoundCount:int = -1;
+		private var yBoundCount:int = -1;
+		
 		// sort render queue based on distance
 		public var distance:Number = 0; // start as far away as possible so it won't get sorted to the front
 		
@@ -78,12 +81,22 @@ package com.kitschpatrol {
 					pixelBytes.position = 0;
 					this.bitmapData.setPixels(copyRect, pixelBytes);
 					copyRect.y += window.CELL_HEIGHT;
-				}
+				}	
 				
 				copyRect.x += window.CELL_WIDTH;
 				copyRect.y = 0;
 				
 				xPosScratch = xPosScratch.add(window.xDelta);
+				
+				// check x bounds (would be faster to go right left...)
+				if ((xPosScratch.compareTo(BigInteger.ZERO) < 0) ||
+					  (xPosScratch.compareTo(window.X_MAX) > 0)) {
+						trace("out of bounds");
+						xBoundCount = i;
+						break;
+				}
+								
+				
 			}
 			
 			
@@ -112,7 +125,33 @@ package com.kitschpatrol {
 				
 				
 				yPosScratch = yPosScratch.add(window.yDelta);
-			}			
+				
+				if ((yPosScratch.compareTo(BigInteger.ZERO) < 0) ||
+					(yPosScratch.compareTo(window.Y_MAX) > 0)) {
+					trace("out of Y bounds");
+					yBoundCount = k;
+					break;
+				}
+				
+
+			}
+			
+			// draw over if we overdrew
+			// this is pretty crude...
+			if(yBoundCount > -1) {
+				this.bitmapData.fillRect(new Rectangle((yBoundCount + 1) * window.CELL_WIDTH,
+																							 0,
+																							 window.CELL_WIDTH * (window.PANE_X_COUNT - yBoundCount),
+																						   window.CELL_HEIGHT * window.PANE_Y_COUNT), 0x4a525a); 
+			}
+			
+			if(xBoundCount > -1) {
+				this.bitmapData.fillRect(new Rectangle(0,
+					                                     (xBoundCount + 1) * window.CELL_HEIGHT,
+																							 window.CELL_WIDTH * window.PANE_X_COUNT,
+																								window.CELL_HEIGHT * (window.PANE_Y_COUNT - xBoundCount)
+																								), 0x4a525a); 
+			}						
 			
 			
 			
