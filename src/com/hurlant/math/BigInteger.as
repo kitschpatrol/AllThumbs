@@ -36,10 +36,16 @@ package com.hurlant.math
 		
 		/*bi_internal */public var t:int; // number of chunks.
 		bi_internal var s:int; // sign
+		
 		bi_internal var a:Array; // chunks
+
+		//bi_internal var a:Vector.<int>;
 		
 		public function BigInteger(value:* = null, radix:int = 0) {
 			a = new Array;
+			// must be set to length of the max number of bits we will need... no more than 77 (48 * 48 / 30)
+			//a = new Vector.<int>(77); not any faster
+			
 			if (value is String) {
 				if (radix == 10) {
 					//value = decStringtoArray(value);
@@ -1553,8 +1559,8 @@ package com.hurlant.math
 			
 			var d:int = 0;
 			var m:Boolean = false;
-			var ba:ByteArray = new ByteArray;
-			var r:String = "";
+			var ba:ByteArray = new ByteArray();
+			//var r:String = "";
 			var i:int = t;
 			var p:int = DB-(i*DB)%k;
 			
@@ -1564,12 +1570,12 @@ package com.hurlant.math
 			
 			if (i-- > 0) {
 				
-				// return if the number is small
-				if (p < DB && (d = a[i] >> p) > 0) {
-					m = true;
-					r = d.toString(36);
-					trace("hi, bigint in trouble");
-				}
+//				// return if the number is small
+//				if (p < DB && (d = a[i] >> p) > 0) {
+//					m = true;
+//					//r = d.toString(36);
+//					trace("hi, bigint in trouble");
+//				}
 				
 				// go through each chunk
 				while (i >= 0) {
@@ -1589,17 +1595,19 @@ package com.hurlant.math
 					if (m) {
 						// add the the string
 						if(d == 0) {
+							// only write white?
 							ba.writeUnsignedInt(0x000000);
 						}
 						else {
 							ba.writeUnsignedInt(0xffffff);
 						}
-						r += d.toString(36);
+						//r += d.toString(36);
 					}
 				}
 			}
 			// if M is true, return the string, otherwise return 0
 			// return m ? r : "0";
+			
 			return ba;
 		}		
 		

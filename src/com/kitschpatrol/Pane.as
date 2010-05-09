@@ -1,6 +1,5 @@
 package com.kitschpatrol {
-	
-	
+
 	import com.hurlant.math.BigInteger;
 	
 	import flash.display.Bitmap;
@@ -13,8 +12,7 @@ package com.kitschpatrol {
 	import flash.utils.ByteArray;
 	import flash.utils.getTimer;
 	
-	public class Pane extends Bitmap	{
-		
+	public class Pane extends Bitmap	{		
 		static public var DONE_RENDERING:String = "done rendering"; // fires when the "center" cell changes		
 		
 		public var xPos:BigInteger;
@@ -69,12 +67,10 @@ package com.kitschpatrol {
 			
 			xIndex = 0;
 			yIndex = 0;
-			cellsPerFrame = 1; // higher for timing purposes
+			cellsPerFrame = 6 * 6; // higher for timing purposes
 			//cellsPerFrame = window.xCount * window.yCount;
 			yPosScratch = yPos.clone();
 			xPosScratch = xPos.clone();
-
-
 		}
 		
 		public function renderCells():void {
@@ -85,16 +81,16 @@ package com.kitschpatrol {
 		
 		
 		private function generateCell(xCell:int, yCell:int, xNumber:BigInteger):void {
-			pixelBytes.length = window.pixelByteCount;
+			pixelBytes.length = window.PIXEL_BYTE_COUNT;
 			
 			// figure out the value
 			xBytes = xNumber.toPixels();
-			yBytes = yPos.add(window.yDelta.multiply(BigInteger.nbv(yCell))).toPixels(); // faster to add and just munge two bigints per cell... YES IT WILL BE
+			yBytes = yPos.add(window.yDelta.multiply(BigInteger.nbv(yCell))).toPixels(); // faster to add and just munge two bigints per cell... YES IT WILL BE because of the copy
 			
 			xBytes.position = 0;
 			yBytes.position = 0;
-			xOffset = window.xByteEnd - xBytes.bytesAvailable;
-			yOffset = window.yByteEnd - yBytes.bytesAvailable;
+			xOffset = window.X_BYTE_END - xBytes.bytesAvailable;
+			yOffset = window.Y_BYTE_END - yBytes.bytesAvailable;
 			
 			pixelBytes.position = xOffset;
 			pixelBytes.writeBytes(xBytes);

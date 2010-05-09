@@ -8,7 +8,6 @@ package com.kitschpatrol
 	import flash.events.MouseEvent;
 	import flash.geom.Point;
 	
-	
 	public class Window extends Sprite {
 		
 		// Events
@@ -29,51 +28,45 @@ package com.kitschpatrol
 		public const CELL_HEIGHT:int = Y_RES + PADDING; // each picture, with padding
 		public const PANE_WIDTH:int = CELL_WIDTH * PANE_X_COUNT; // a pane of cells
 		public const PANE_HEIGHT:int = CELL_HEIGHT * PANE_Y_COUNT; // a pane of cells
+		public const X_PIXEL_COUNT:int = X_RES * Y_RES / 2;
+		public const Y_PIXEL_COUNT:int = X_PIXEL_COUNT;
+		public const X_PIXEL_BYTES:int = X_PIXEL_COUNT / 8;
+		public const Y_PIXEL_BYTES:int = Y_PIXEL_COUNT / 8;	
+		public const X_BYTE_END:int = X_RES * (Y_RES / 2) * 4; // end of bytes for the pane
+		public const Y_BYTE_END:int = X_RES * Y_RES * 4;
+		public const PIXEL_BYTE_COUNT:int = X_RES * Y_RES * 4;			
 		
 		// multiply pane_width to draw more outside view
-		private const X_OVERDRAW:int = PANE_WIDTH; // how much to draw outside the window
-		private const Y_OVERDRAW:int = PANE_HEIGHT; // how much to draw outside the window
+		private const X_OVERDRAW:int = PANE_WIDTH * 2; // how much to draw outside the window
+		private const Y_OVERDRAW:int = PANE_HEIGHT * 2; // how much to draw outside the window
 		
-		
-		
-		
+		// variables
 		public var xStart:BigInteger;
 		public var yStart:BigInteger;
 		public var xDelta:BigInteger;
 		public var yDelta:BigInteger;
-
-		public var xTemp:BigInteger;
-		public var yTemp:BigInteger;		
 		public var selectedX:BigInteger;
-		public var selectedY:BigInteger;		
-		
-		
-		private var xOffset:int; // mouse offset
-		private var yOffset:int; // mouse offset
-		private var panes:Array; // list of panes
-		private var tempPane:Pane; // a pane to munge
+		public var selectedY:BigInteger;
+		private var xOffset:int = 0; // mouse offset
+		private var yOffset:int = 0; // mouse offset
 		private var lastMouseX:int;
 		private var lastMouseY:int;
 
 		private var maxWidth:int; // max window width
-		private var maxHeight:int; // max window height
-		public var xPixelCount:int;
-		public var yPixelCount:int;
-		public var xPixelBytes:int;
-		public var yPixelBytes:int;
-		public var pixelByteCount:int;
-		private var xAccumulator:int; // tack cell sized movements to fire change event
-		private var yAccumulator:int;
+		private var maxHeight:int; // max window height		
 		
-		public var xByteEnd:int; // end of the bytes for the pane
-		public var yByteEnd:int;
+		private var panes:Array = []; // list of panes		
+		private var renderQueue:Array = [];		
+		
+		// scratch
+		public var xTemp:BigInteger;
+		public var yTemp:BigInteger;				
+		private var tempPane:Pane; // a pane to munge
+		
+		private var xAccumulator:int = 0; // track cell sized movements to fire change event
+		private var yAccumulator:int = 0;
 		
 		private var windowMask:Shape;
-		
-		private var renderQueue:Array = [];
-		
-		
-		
 		
 		public function Window(_x:int, _y:int, _width:int, _height:int) {
 			super();
@@ -83,6 +76,7 @@ package com.kitschpatrol
 			maxWidth = _width;
 			maxHeight = _height;
 
+			// fill the background
 			this.graphics.beginFill(0x222222);
 			this.graphics.drawRect(0, 0, _width, _height);
 			this.graphics.endFill();
@@ -90,8 +84,6 @@ package com.kitschpatrol
 			// simulation settings
 			xStart = BigInteger.nbv(0);
 			yStart = BigInteger.nbv(0);
-			selectedX = xStart.clone();
-			selectedX = yStart.clone();
 			xDelta = BigInteger.nbv(1);
 			yDelta = BigInteger.nbv(1);
 			
@@ -99,42 +91,21 @@ package com.kitschpatrol
 			//xDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
 			//yDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
 			
-			// this is 5000 steps to white
-			xDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(1000));
-			yDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(1000));
+			// this is 500 steps to white
+//			xDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(100));
+//			yDelta = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10).divide(BigInteger.nbv(100));
 
-			xStart = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
-			yStart = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);			
-			xStart = xStart.multiply(BigInteger.nbv(4));
-			yStart = yStart.multiply(BigInteger.nbv(4));
+			// delete and reinstantiat the whole window on teleport? that might be the best cleanup method...
+//			xStart = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
+//			yStart = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);			
+//			xStart = xStart.multiply(BigInteger.nbv(4));
+//			yStart = yStart.multiply(BigInteger.nbv(4));
 			
-			
-
-			
-			xPixelCount = X_RES * Y_RES / 2;
-			yPixelCount = xPixelCount;
-			xPixelBytes = xPixelCount / 8;
-			yPixelBytes = yPixelCount / 8;
-			
-			// house keeping
-			
+			selectedX = xStart.clone();
+			selectedX = yStart.clone();
 
 
-
-
-
-			xByteEnd = X_RES * (Y_RES / 2) * 4;
-			yByteEnd = X_RES * Y_RES * 4;
-			pixelByteCount = X_RES * Y_RES * 4;
-			
-			xOffset = 0;
-			yOffset = 0;
-	
-			xAccumulator = 0;
-			yAccumulator = 0;
-			
-			panes = new Array();
-			
+			// populate the window			
 			fillView();
 			manageView();
 			centerOn(xStart, yStart);
@@ -145,10 +116,8 @@ package com.kitschpatrol
 			windowMask.graphics.drawRect(0, 0, _width, _height);
 			windowMask.graphics.endFill();
 			this.mask = windowMask;
-			
 
 			this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
-			
 		}
 		
 		
@@ -159,7 +128,7 @@ package com.kitschpatrol
 			
 			lastMouseX = e.stageX;
 			lastMouseY = e.stageY;			
-		}		
+		}
 		
 		private function paneExists(xTest:int, yTest:int):Boolean {
 			for (var i:int = 0; i < panes.length; i++) {
@@ -426,7 +395,7 @@ package com.kitschpatrol
 		
 		// the whole number, no x and y business
 		public function getSelectedIndex():BigInteger {
-			return new BigInteger(Utilities.zeroPad(selectedX.toString(2), this.xPixelCount) + Utilities.zeroPad(selectedY.toString(2), this.yPixelCount), 2);
+			return new BigInteger(Utilities.zeroPad(selectedX.toString(2), this.X_PIXEL_COUNT) + Utilities.zeroPad(selectedY.toString(2), this.Y_PIXEL_COUNT), 2);
 		}
 		
 		
