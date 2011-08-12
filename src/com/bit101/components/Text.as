@@ -72,7 +72,7 @@ package com.bit101.components
 		override protected function addChildren():void
 		{
 			_panel = new Panel(this);
-			_panel.color = 0xffffff;
+			_panel.color = 0;
 			
 			_tf = new TextField();
 			_tf.x = 2;
@@ -84,7 +84,11 @@ package com.bit101.components
 			_tf.selectable = true;
 			_tf.type = TextFieldType.INPUT;
 			_tf.defaultTextFormat = new TextFormat(Style.fontName, Style.fontSize, Style.LABEL_TEXT);
-			_tf.addEventListener(Event.CHANGE, onChange);			
+			_tf.addEventListener(Event.CHANGE, onChange);
+			
+
+			_tf.textColor = 0xffffff;			
+			
 			addChild(_tf);
 		}
 		

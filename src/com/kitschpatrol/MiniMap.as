@@ -101,7 +101,7 @@ package com.kitschpatrol
 			crosshairs.x = localX;
 			crosshairs.y = localY;
 			
-			trace(localX + " : " + localY);
+			//trace(localX + " : " + localY);
 			
 		}
 		

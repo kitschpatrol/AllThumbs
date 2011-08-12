@@ -1,4 +1,5 @@
 package com.kitschpatrol {
+	import com.bit101.components.CheckBox;
 	import com.bit101.components.HUISlider;
 	import com.bit101.components.Label;
 	import com.bit101.components.PushButton;
@@ -17,19 +18,23 @@ package com.kitschpatrol {
 	import flash.events.ActivityEvent;
 	import flash.events.ContextMenuEvent;
 	import flash.events.Event;
+	import flash.events.TimerEvent;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	import flash.media.Camera;
 	import flash.media.Video;
 	import flash.ui.ContextMenu;
 	import flash.ui.ContextMenuItem;
+	import flash.ui.MouseCursorData;
+	import flash.ui.MouseCursor;
+	import flash.ui.Mouse;
 	import flash.utils.ByteArray;
+	import flash.utils.Timer;
 	import flash.utils.getTimer;
 	
-	import flashx.textLayout.tlf_internal;
-	
 	// note modifications to big integer
-	[SWF(width="1360", height="768", backgroundColor="0x4a525a", frameRate="40")]	
+	
+	[SWF(width="1680", height="1050", backgroundColor="0x2f3439", frameRate="40")]	
 	
 	public class AllThumbs extends Sprite	{
 
@@ -41,6 +46,11 @@ package com.kitschpatrol {
 		private var submitCameraButton:PushButton;
 		private var textLabel:Label;
 		private var thresholdSlider:VSlider;
+		private var controlPanel:Sprite		
+		private var zoomSlider:HUISlider;
+		private var startButton:PushButton;
+		private var endButton:PushButton;
+		
 		
 		private var video:Video;
 		private var camera:Camera;
@@ -52,71 +62,42 @@ package com.kitschpatrol {
 		private var cameraPixelStringY:String;
 		private var thresholdValue:Number;
 		
+		private var shutterTimer:Timer;
+		
+		private var autoShutterToggle:CheckBox;
+		
+		private var cursorData:MouseCursorData;
+		
 		// New navigation
 		private var viewHolder:NavHolder;
 		private var navHolder:NavHolder;
 		
-		
 		public function AllThumbs() {
-			toggleFullScreen();
+			//toggleFullScreen();
 			
 			// Build the window
-			window = new Window(0, 0, 1360, 768);
+			window = new Window(0, 0, 1680, 885);
 			addChild(window);
 			
-			
 			// Build the gui
-			
-			// The view panel
-			viewHolder = new NavHolder(480, 180);
-			viewHolder.x = 23;
-			viewHolder.y = 550;
-			addChild(viewHolder);
-			
-			var viewControls:NavPane = new NavPane("View");
-			
-			// the delta slider
-			deltaSlider = new HUISlider(viewControls, 10, 40, "Delta", onDeltaSlide);
-			deltaSlider.minimum = 1;
-			deltaSlider.width = 340;
-			deltaSlider.maximum = 346;
-			deltaSlider.labelPrecision = 0;
-			deltaSlider.height = 20;
-
-			// the zoom slider
-			var zoomSlider:HUISlider = new HUISlider(viewControls, 10, 80, "Zoom", onZoomSlide); 
-			zoomSlider.minimum = 1;
-			zoomSlider.width = 340;
-			zoomSlider.maximum = 5;
-			zoomSlider.tick = .1;
+			controlPanel = new Sprite();
+			controlPanel.graphics.beginFill(0x000000);
+			controlPanel.graphics.drawRect(0, 0, 1680, 165);
+			controlPanel.graphics.endFill();
+			controlPanel.x = 0;
+			controlPanel.y = 885;			
+			addChild(controlPanel);
 			
 			// the mini map
-			var mapLabel:Label = new Label(viewHolder, 340, 40, "Map");
+			var mapLabel:Label = new Label(controlPanel, 15, 10, "POSSIBILITY MAP");
 			var miniMap:MiniMap = new MiniMap(120, 120, window);
-			miniMap.x = 340;
-			miniMap.y = 60;
-			viewHolder.addChild(miniMap);
-			
-			viewHolder.addPane(viewControls);
-			
-			// The Navigation Panel
-			navHolder = new NavHolder(480, 180);
-			navHolder.x = 1360 - 527;
-			navHolder.y = 550;
-			addChild(navHolder);
-			
-			// the camera tab
-			var cameraPane:NavPane = new NavPane("Camera");
-			
+			miniMap.x = 15;
+			miniMap.y = 30;
+			controlPanel.addChild(miniMap);
 				
-			// the camera slider
-			thresholdValue = 0;
-			thresholdSlider = new VSlider(cameraPane, 20, 40, onThresholdSlide);
-			thresholdSlider.minimum = 0;
-			thresholdSlider.maximum = 0xffffff;
-			thresholdSlider.height = 120;
-			
-			// The camera
+			// the camera
+			var cameraLabel:Label = new Label(controlPanel, 15 + 120 + 15, 10, "CAMERA FEED");			
+
 			camera = Camera.getCamera();
 			camera.setMode(64, 48, 30);
 			video = new Video(64, 48);
@@ -126,36 +107,72 @@ package com.kitschpatrol {
 			cameraRect = new Rectangle(0, 0, 48, 48);
 			cameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0));
 			processedCameraBitmap = new Bitmap(new BitmapData(48, 48, false, 0xffffff));
-			processedCameraBitmap.x = 50;
-			processedCameraBitmap.y = 40;
+			processedCameraBitmap.x = 15 + 120 + 15;
+			processedCameraBitmap.y = 30;
 			processedCameraBitmap.scaleX = 2.5;
 			processedCameraBitmap.scaleY = 2.5;
-			cameraPane.addChild(processedCameraBitmap);
+			controlPanel.addChild(processedCameraBitmap);
+			
+			
+			shutterTimer = new Timer(1000);
+			shutterTimer.addEventListener(TimerEvent.TIMER, onSubmitCamera);
+			//shutterTimer.start();
 			
 			// the camera submit button
-			submitCameraButton = new PushButton(cameraPane, 50, 170, "GO", onSubmitCamera);
+			submitCameraButton = new PushButton(controlPanel, 50, 170, "GO", onSubmitCamera);
 			submitCameraButton._label._tf.textColor = 0x0;
 			submitCameraButton.width = 120;
 			
-			navHolder.addPane(cameraPane);
-			
 			// Text Pane
-			var textPane:NavPane = new NavPane("Location");
-			textLabel = new Label(textPane, 10, 30, "Possibility #:");			
+			textLabel = new Label(controlPanel, 15 + 120 + 15 + 120 + 15 , 10, "POSSIBILITY NUMBER");
 			
-			locationText = new Text(textPane, 10, 50, "0");
-			locationText.width = 460;
-			locationText.height = 120;
-			
-			// the text submit button
-			submitTextButton = new PushButton(textPane, 10, 175, "GO", onSubmitText);
-			submitTextButton._label._tf.textColor = 0x0;			
+			locationText = new Text(controlPanel, 15 + 120 + 15 + 120 + 15, 25	, "0");
+			locationText.width = 1370;
+			locationText.height = 130;			
 			
 			window.addEventListener(Window.SELECTION_CHANGE, onSelectionChange);			
 			
-			navHolder.addPane(textPane);
 			
-
+			
+			
+			// eric's private gui
+			
+			
+			autoShutterToggle = new CheckBox(controlPanel, 10, -105, "Auto Shutter", onAutoShutterToggle);
+			autoShutterToggle.selected = false;
+			
+			// the delta slider, toggles
+			deltaSlider = new HUISlider(controlPanel, 10, -30, "Delta", onDeltaSlide);
+			deltaSlider.minimum = 1;
+			deltaSlider.width = 340;
+			deltaSlider.maximum = 346;
+			deltaSlider.labelPrecision = 0;
+			deltaSlider.height = 20;
+			
+			// the zoom slider
+			zoomSlider = new HUISlider(controlPanel, 10, -50, "Zoom", onZoomSlide); 
+			zoomSlider.minimum = 1;
+			zoomSlider.width = 340;
+			zoomSlider.maximum = 5;
+			zoomSlider.tick = .1;
+			
+			// the start button
+			startButton = new PushButton(controlPanel, 10, -90, "Start", onStartButton);
+			startButton._label._tf.textColor = 0x0;		
+			
+			endButton = new PushButton(controlPanel, 120, -90, "End", onEndButton);
+			endButton._label._tf.textColor = 0x0;		
+			
+			// camera slider, toggles
+			thresholdValue = 0;
+			thresholdSlider = new VSlider(controlPanel, 15 + 120 + 15 + 120, 30, onThresholdSlide);
+			thresholdSlider.minimum = 0;
+			thresholdSlider.maximum = 0xffffff;
+			thresholdSlider.height = 120;
+						
+			
+			
+			
 			
 			// set up a full screen option in the context menu
 			var myContextMenu:ContextMenu = new ContextMenu();
@@ -163,29 +180,53 @@ package com.kitschpatrol {
 			myContextMenu.customItems.push(item);
 			item.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onFullScreenContextMenuSelect);
 			contextMenu = myContextMenu;
+			
+			
+			
+			
+			// set up a knobs and dials toggle in context menu
+			var item2:ContextMenuItem = new ContextMenuItem("Toggle Knobs and Dials");
+			myContextMenu.customItems.push(item2);
+			item2.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, toggleKnobsAndDials);
+			contextMenu = myContextMenu;			
 
+			
+			
+			
+			
 			// set up the stage
 			stage.scaleMode = StageScaleMode.NO_SCALE;
 			stage.quality = StageQuality.HIGH;
-			
-			
-			
-			
-//			// the crosshairs
-//			var crosshairs:Shape = new Shape();
-//			crosshairs.graphics.lineStyle(4, 0xff0000, 0.3);
-//			crosshairs.graphics.drawRect(0, 0, window.CELL_WIDTH * 1.2, window.CELL_HEIGHT * 1.2);
-//			crosshairs.x = window.windowCenter().x - crosshairs.width / 2;
-//			crosshairs.y = window.windowCenter().y - crosshairs.height / 2;
-//			addChild(crosshairs);
+
+			// the crosshairs
+			var crosshairs:Shape = new Shape();
+			crosshairs.graphics.lineStyle(1, 0xff0000);
+			crosshairs.graphics.drawRect(0, 0, window.X_RES + 3, window.Y_RES + 3);
+			crosshairs.x = Math.round(window.windowCenter().x - window.X_RES / 2) - 5;
+			crosshairs.y = Math.round(window.windowCenter().y - window.X_RES / 2) - 5;
+			addChild(crosshairs);
 
 			
-			
+			// Mouse Hiding
+			// This is ridiculous
+			cursorData = new MouseCursorData();
+			var cursorBitmaps:Vector.<BitmapData> = new Vector.<BitmapData>(1, true);
+			cursorBitmaps[0] = new BitmapData(1, 1, true, 0x000000ff);
+			cursorData.data = cursorBitmaps;
+			Mouse.registerCursor("hidden", cursorData);			
 		}
 		
 		private function onZoomSlide(e:Event):void {
 			window.setScale(e.target.value, e.target.value);
 		}
+		
+		private function onStartButton(e:Event):void {
+			window.centerOn(BigInteger.ZERO, BigInteger.ZERO);
+		}
+		
+		private function onEndButton(e:Event):void {
+			window.centerOn(window.X_MAX, window.Y_MAX);
+		}		
 		
 		private function onCameraUpdate(e:Event):void {
 			cameraBitmap.bitmapData.draw(video);
@@ -202,6 +243,26 @@ package com.kitschpatrol {
 		private function onThresholdSlide(e:Event):void {
 			thresholdValue = thresholdSlider.value;
 		}
+		
+		private function onSelectionChange(e:Event):void {
+
+			//locationText.text = Utilities.formatNumber(window.getSelectedIndex().toString(10)) + "\n/\n3,742,053,650,892,133,432,367,999,773,538,322,459,225,928,823,527,575,869,347,258,443,714,776,254,479,140,165,467,924,450,143,929,014,376,701,328,043,796,892,084,250,680,644,651,644,268,919,891,406,030,558,009,514,559,848,402,392,186,697,349,032,657,288,467,726,728,117,428,485,865,736,692,545,611,669,179,323,917,560,467,904,459,270,003,565,249,200,768,855,069,969,069,462,910,188,335,948,939,853,235,385,655,600,614,050,799,627,402,904,169,955,617,680,686,939,217,306,230,732,743,306,013,312,855,692,685,442,723,231,659,949,822,010,462,888,578,091,073,832,552,856,131,420,378,840,703,853,686,445,535,243,055,462,767,679,945,780,563,431,553,986,820,134,725,467,051,353,840,270,015,201,262,955,847,832,589,866,641,019,681,571,016,376,279,703,475,133,297,517,542,073,557,917,754,709,550,486,937,454,822,846,451,632,280,550,418,910,946,262,563,991,699,255,138,480,187,856,382,366,661,603,621,981,981,643,212,128,456,085,078,016";
+			locationText.text = Utilities.formatNumber(window.getSelectedIndex().toString(10));
+			
+		}
+		
+		private function onAutoShutterToggle(e:Event):void {
+			if(shutterTimer.running) {
+				shutterTimer.stop();
+			}
+			else {
+				shutterTimer.start();
+			}
+			
+			
+		}
+		
+
 		
 		private function onSubmitCamera(e:Event):void {
 			
@@ -252,19 +313,32 @@ package com.kitschpatrol {
 	
 		}
 		
-		private function onSelectionChange(e:Event):void {
-			trace("change");
-			locationText.text = window.getSelectedIndex().toString(10);
-			
-
-			
-		}
-		
 		private var fiveSteps:BigInteger = new BigInteger("12234465498569413894406478743841145361827162748688159810039079514183939559218391664357372787631594358463168901374701809308891801671007230130066723378042125137212894594296124410621956639403190879922410562428365584417623555614966739717809626431260004568979968393974952774324960520703130399622609141713985447492509246633766908652935623681883409429299", 10);
 		private var lastDelataSlideValue:int = 1;
 		
 		
-		
+		public function toggleKnobsAndDials(e:ContextMenuEvent):void {
+			trace("toggling knobs and dials");
+			
+			if (controlPanel.contains(thresholdSlider)) {
+				controlPanel.removeChild(thresholdSlider);
+				controlPanel.removeChild(deltaSlider);
+				controlPanel.removeChild(zoomSlider);
+				controlPanel.removeChild(startButton);
+				controlPanel.removeChild(endButton);
+				controlPanel.removeChild(autoShutterToggle);
+			}
+			else {
+				controlPanel.addChild(thresholdSlider);
+				controlPanel.addChild(deltaSlider);
+				controlPanel.addChild(zoomSlider);
+				controlPanel.addChild(startButton);
+				controlPanel.addChild(endButton);
+				controlPanel.addChild(autoShutterToggle);
+			}
+			
+			
+		}
 		
 		public function onDeltaSlide(e:Event):void {
 			
@@ -293,15 +367,23 @@ package com.kitschpatrol {
 		
 		
 		
+		
+		
 		private function onFullScreenContextMenuSelect(e:Event):void {
 			toggleFullScreen();
 		}
 		
+		
+		
+		
+		
 		private function toggleFullScreen():void {
 			if (stage.displayState == StageDisplayState.NORMAL) {
+				Mouse.cursor = "hidden";
 				stage.displayState = StageDisplayState.FULL_SCREEN;
 			}
 			else {
+				Mouse.cursor = MouseCursor.ARROW;
 				stage.displayState = StageDisplayState.NORMAL;
 			}
 		}

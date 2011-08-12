@@ -139,15 +139,15 @@ package com.kitschpatrol {
 			// draw over if we overdrew
 			// this is pretty crude...
 			if(yBoundCount > -1) {
-				this.bitmapData.fillRect(new Rectangle((yBoundCount + 1) * window.CELL_WIDTH,
-																							 0,
+				this.bitmapData.fillRect(new Rectangle((yBoundCount) * window.CELL_WIDTH,
+																							window.CELL_HEIGHT,
 																							 window.CELL_WIDTH * (window.PANE_X_COUNT - yBoundCount),
 																						   window.CELL_HEIGHT * window.PANE_Y_COUNT), 0x4a525a); 
 			}
 			
 			if(xBoundCount > -1) {
-				this.bitmapData.fillRect(new Rectangle(0,
-					                                     (xBoundCount + 1) * window.CELL_HEIGHT,
+				this.bitmapData.fillRect(new Rectangle(window.CELL_WIDTH,
+					                                     (xBoundCount) * window.CELL_HEIGHT,
 																							 window.CELL_WIDTH * window.PANE_X_COUNT,
 																								window.CELL_HEIGHT * (window.PANE_Y_COUNT - xBoundCount)
 																								), 0x4a525a); 
@@ -155,7 +155,7 @@ package com.kitschpatrol {
 			
 			
 			
-			trace("Pane Rendered in: " + (getTimer() - paneStart));
+			//trace("Pane Rendered in: " + (getTimer() - paneStart));
 			isRendered = true; // flag ourselves
 			this.dispatchEvent(new Event(Pane.DONE_RENDERING)); // announce ourselves			
 		}

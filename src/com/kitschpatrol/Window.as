@@ -19,7 +19,7 @@ package com.kitschpatrol
 		public const BIT_DEPTH:int = 2;
 		public const PANE_X_COUNT:int = 8; // set this to determine pane size, cells per pane
 		public const PANE_Y_COUNT:int = 8;
-		public const PADDING:int = 2; // pixels between cells		
+		public const PADDING:int = 5; // pixels between cells		
 		
 		// derrived constants, don't touch
 		public const X_MAX:BigInteger = BigInteger.nbv(BIT_DEPTH).pow(X_RES * (Y_RES / 2)).subtract(BigInteger.nbv(1));

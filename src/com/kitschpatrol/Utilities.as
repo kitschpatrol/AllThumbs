@@ -41,7 +41,24 @@ package com.kitschpatrol
 			return hex;
 		}
 
-
+		public static function formatNumber(numString:String):String	{
+			        var result:String = ''
+			
+			        while (numString.length > 3)
+			        {
+				                var chunk:String = numString.substr(-3)
+				                numString = numString.substr(0, numString.length - 3)
+				                result = ',' + chunk + result
+			        }
+			
+			        if (numString.length > 0)
+			        {
+				                result = numString + result
+			        }
+			
+			        return result
+		}
+		
 		
 	}
 	
