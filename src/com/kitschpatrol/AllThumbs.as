@@ -25,16 +25,16 @@ package com.kitschpatrol {
 	import flash.media.Video;
 	import flash.ui.ContextMenu;
 	import flash.ui.ContextMenuItem;
-	import flash.ui.MouseCursorData;
-	import flash.ui.MouseCursor;
 	import flash.ui.Mouse;
+	import flash.ui.MouseCursor;
+	import flash.ui.MouseCursorData;
 	import flash.utils.ByteArray;
 	import flash.utils.Timer;
 	import flash.utils.getTimer;
 	
 	// note modifications to big integer
 	
-	[SWF(width="1680", height="1050", backgroundColor="0x2f3439", frameRate="40")]	
+	[SWF(width="1680", height="1050", backgroundColor="0x2f3439", frameRate="30")]	
 	
 	public class AllThumbs extends Sprite	{
 
@@ -116,7 +116,7 @@ package com.kitschpatrol {
 			
 			shutterTimer = new Timer(1000);
 			shutterTimer.addEventListener(TimerEvent.TIMER, onSubmitCamera);
-			//shutterTimer.start();
+			shutterTimer.start(); // automatic from the start
 			
 			// the camera submit button
 			submitCameraButton = new PushButton(controlPanel, 50, 170, "GO", onSubmitCamera);
@@ -164,10 +164,11 @@ package com.kitschpatrol {
 			endButton._label._tf.textColor = 0x0;		
 			
 			// camera slider, toggles
-			thresholdValue = 0;
+			thresholdValue = 0xffffff / 2;
 			thresholdSlider = new VSlider(controlPanel, 15 + 120 + 15 + 120, 30, onThresholdSlide);
 			thresholdSlider.minimum = 0;
 			thresholdSlider.maximum = 0xffffff;
+			thresholdSlider.value = thresholdValue;
 			thresholdSlider.height = 120;
 						
 			
@@ -214,6 +215,12 @@ package com.kitschpatrol {
 			cursorBitmaps[0] = new BitmapData(1, 1, true, 0x000000ff);
 			cursorData.data = cursorBitmaps;
 			Mouse.registerCursor("hidden", cursorData);			
+			
+			
+			// start with mouse and dials hidden
+			toggleFullScreen();
+			toggleKnobsAndDials(new ContextMenuEvent(ContextMenuEvent.MENU_SELECT));
+			
 		}
 		
 		private function onZoomSlide(e:Event):void {
